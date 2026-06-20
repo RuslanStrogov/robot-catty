@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru" ng-app="robotCatty">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Catty Control</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background: #1a1a2e; color: #eee; }
+        .card { background: #16213e; border: 1px solid #0f3460; }
+        .card-header { background: #0f3460; color: #e94560; }
+        .slider-container { padding: 10px 0; }
+        .slider-label { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .form-range::-webkit-slider-thumb { background: #e94560; }
+        .form-range::-webkit-slider-runnable-track { background: #0f3460; }
+        .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .status-connected { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
+        .status-disconnected { background: #ff4444; box-shadow: 0 0 8px #ff4444; }
+        .rgb-preview { width: 60px; height: 60px; border-radius: 50%; border: 3px solid #333; margin: 10px auto; transition: all 0.3s; }
+        .preset-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid #333; margin: 3px; cursor: pointer; transition: transform 0.2s; }
+        .preset-btn:hover { transform: scale(1.2); border-color: #fff; }
+        .animation-btn { margin: 5px; }
+        .animation-btn.active { background: #e94560; border-color: #e94560; }
+        #log { background: #0a0a1a; color: #0f0; font-family: monospace; font-size: 12px; height: 150px; overflow-y: auto; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body ng-controller="MainController">
+    <div class="container-fluid py-3">
+        <!-- Header -->
+        <div class="row mb-3">
+            <div class="col">
+                <h2><i class="bi bi-robot"></i> Robot Catty</h2>
+                <span class="status-dot" ng-class="status.connected ? 'status-connected' : 'status-disconnected'"></span>
+                <small>{{status.connected ? 'Подключено' : 'Отключено'}}</small>
+                <span class="ms-3" ng-if="state.animation">
+                    <i class="bi bi-play-fill"></i> {{state.animation}}
+                    <button class="btn btn-sm btn-outline-danger ms-2" ng-click="stopAnimation()">Стоп</button>
+                </span>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Head Servos -->
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <div class="card-header"><i class="bi bi-eye"></i> Голова (Uno)</div>
+                    <div class="card-body">
+                        <div class="slider-container" ng-repeat="(name, label) in headLabels">
+                            <div class="slider-label">
+                                <small>{{label}}</small>
+                                <small>{{state.servos.head[name]}}°</small>
+                            </div>
+                            <input type="range" class="form-range" min="0" max="180"
+                                   ng-model="state.servos.head[name]"
+                                   ng-change="setServo('head', name, state.servos.head[name])">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Body Servos -->
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <div class="card-header"><i class="bi bi-person"></i> Тело (Mega)</div>
+                    <div class="card-body">
+                        <div class="slider-container" ng-repeat="(name, label) in bodyLabels">
+                            <div class="slider-label">
+                                <small>{{label}}</small>
+                                <small>{{state.servos.body[name]}}°</small>
+                            </div>
+                            <input type="range" class="form-range" min="0" max="180"
+                                   ng-model="state.servos.body[name]"
+                                   ng-change="setServo('body', name, state.servos.body[name])">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RGB LED -->
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <div class="card-header"><i class="bi bi-lightbulb"></i> RGB LED</div>
+                    <div class="card-body text-center">
+                        <div class="rgb-preview" ng-style="{'background': 'rgb(' + state.rgb.r + ',' + state.rgb.g + ',' + state.rgb.b + ')'}"></div>
+                        <div class="slider-container">
+                            <div class="slider-label><small>R</small><small>{{state.rgb.r}}</small></div>
+                            <input type="range" class="form-range" min="0" max="255" ng-model="state.rgb.r" ng-change="setRGB()">
+                        </div>
+                        <div class="slider-container">
+                            <div class="slider-label"><small>G</small><small>{{state.rgb.g}}</small></div>
+                            <input type="range" class="form-range" min="0" max="255" ng-model="state.rgb.g" ng-change="setRGB()">
+                        </div>
+                        <div class="slider-container">
+                            <div class="slider-label"><small>B</small><small>{{state.rgb.b}}</small></div>
+                            <input type="range" class="form-range" min="0" max="255" ng-model="state.rgb.b" ng-change="setRGB()">
+                        </div>
+                        <div class="mt-2">
+                            <div class="preset-btn" ng-repeat="(name, color) in presets"
+                                 ng-style="{'background': 'rgb(' + color.r + ',' + color.g + ',' + color.b + ')'}"
+                                 ng-click="runPreset(name)" title="{{name}}"></div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-light mt-2" ng-click="setRGB(0,0,0)">
+                            <i class="bi bi-power"></i> Выкл
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Animations -->
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <div class="card-header"><i class="bi bi-film"></i> Анимации</div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-info animation-btn" ng-click="runAnimation('wave')">
+                            <i class="bi bi-hand-wave"></i> Махать
+                        </button>
+                        <button class="btn btn-outline-info animation-btn" ng-click="runAnimation('nod')">
+                            <i class="bi bi-arrow-down-up"></i> Кивание
+                        </button>
+                        <button class="btn btn-outline-info animation-btn" ng-click="runAnimation('shake')">
+                            <i class="bi bi-arrow-left-right"></i) Мотать
+                        </button>
+                        <button class="btn btn-outline-info animation-btn" ng-click="runAnimation('dance')">
+                            <i class="bi bi-music-note"></i> Танец
+                        </button>
+                        <button class="btn btn-outline-info animation-btn" ng-click="runAnimation('lookAround')">
+                            <i class="bi bi-eye"></i> Оглядеться
+                        </button>
+                        <button class="btn btn-outline-info animation-btn" ng-click="runAnimation('blink')">
+                            <i class="bi bi-lightbulb"></i> Мигание
+                        </button>
+                        <button class="btn btn-outline-danger animation-btn" ng-click="stopAnimation()">
+                            <i class="bi bi-stop-fill"></i> Стоп
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log -->
+        <div class="row">
+            <div class="col">
+                <div class="card">
+                    <div class="card-header"><i class="bi bi-terminal"></i> Лог</div>
+                    <div class="card-body p-0">
+                        <div id="log"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
+    <script>
+        angular.module('robotCatty', [])
+        .controller('MainController', function($scope, $http, $timeout) {
+            $scope.state = {
+                servos: {
+                    head: { eyeL: 90, eyeR: 90, jaw: 90, headRot: 90, neckUD: 90, neckLR: 90 },
+                    body: { shoulderL: 90, shoulderR: 90, elbowL: 90, elbowR: 90 }
+                },
+                rgb: { r: 0, g: 0, b: 0 },
+                animation: null
+            };
+            $scope.status = { connected: false };
+            $scope.headLabels = { eyeL: 'Левый глаз', eyeR: 'Правый глаз', jaw: 'Челюсть', headRot: 'Поворот', neckUD: 'Шея ↕', neckLR: 'Шея ↔' };
+            $scope.bodyLabels = { shoulderL: 'Левое плечо', shoulderR: 'Правое плечо', elbowL: 'Левый локоть', elbowR: 'Правый локоть' };
+            $scope.presets = { red: {r:255,g:0,b:0}, green: {r:0,g:255,b:0}, blue: {r:0,g:0,b:255}, white: {r:255,g:255,b:255}, yellow: {r:255,g:255,b:0}, cyan: {r:0,g:255,b:255}, magenta: {r:255,g:0,b:255}, orange: {r:255,g:165,b:0}, pink: {r:255,g:192,b:203}, purple: {r:128,g:0,b:128} };
+
+            let ws;
+            function connectWS() {
+                ws = new WebSocket('ws://' + location.host);
+                ws.onopen = () => { $scope.status.connected = true; log('WebSocket подключен'); $scope.$apply(); };
+                ws.onclose = () => { $scope.status.connected = false; log('WebSocket отключен'); $scope.$apply(); setTimeout(connectWS, 3000); };
+                ws.onmessage = (e) => {
+                    const msg = JSON.parse(e.data);
+                    if (msg.type === 'state' || msg.type === 'init') {
+                        angular.extend($scope.state, msg.data || msg.state);
+                        $scope.$apply();
+                    }
+                };
+            }
+            connectWS();
+
+            function log(msg) {
+                const el = document.getElementById('log');
+                el.innerHTML += new Date().toLocaleTimeString() + ' ' + msg + '\n';
+                el.scrollTop = el.scrollHeight;
+            }
+
+            $scope.setServo = (board, servo, angle) => {
+                ws.send(JSON.stringify({ type: 'servo', board, servo, angle: parseInt(angle) }));
+                log('Servo ' + board + '.' + servo + ' → ' + angle + '°');
+            };
+
+            $scope.setRGB = () => {
+                ws.send(JSON.stringify({ type: 'rgb', r: +$scope.state.rgb.r, g: +$scope.state.rgb.g, b: +$scope.state.rgb.b }));
+            };
+
+            $scope.runPreset = (name) => {
+                const p = $scope.presets[name];
+                $scope.state.rgb = { r: p.r, g: p.g, b: p.b };
+                ws.send(JSON.stringify({ type: 'preset', name }));
+                log('Preset: ' + name);
+            };
+
+            $scope.runAnimation = (name) => {
+                ws.send(JSON.stringify({ type: 'animation', name }));
+                log('Animation: ' + name);
+            };
+
+            $scope.stopAnimation = () => {
+                ws.send(JSON.stringify({ type: 'stop' }));
+                log('Animation stopped');
+            };
+        });
+    </script>
+</body>
+</html>

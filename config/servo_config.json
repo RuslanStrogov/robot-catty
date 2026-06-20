@@ -1,0 +1,36 @@
+{
+    "head": {
+        "board": "uno",
+        "port": "/dev/ttyUSB0",
+        "baudRate": 9600,
+        "servos": {
+            "eyeL":     { "pin": 4,  "min": 45,  "max": 135, "home": 90, "description": "Левый глаз" },
+            "eyeR":     { "pin": 7,  "min": 45,  "max": 135, "home": 90, "description": "Правый глаз" },
+            "jaw":      { "pin": 8,  "min": 60,  "max": 120, "home": 90, "description": "Челюсть" },
+            "headRot":  { "pin": 9,  "min": 30,  "max": 150, "home": 90, "description": "Поворот головы" },
+            "neckUD":   { "pin": 10, "min": 50,  "max": 130, "home": 90, "description": "Шея вверх-вниз" },
+            "neckLR":   { "pin": 11, "min": 40,  "max": 140, "home": 90, "description": "Шея влево-вправо" }
+        }
+    },
+    "body": {
+        "board": "mega",
+        "port": "/dev/ttyACM0",
+        "baudRate": 9600,
+        "servos": {
+            "shoulderL": { "pin": 2, "min": 10, "max": 170, "home": 90, "description": "Левое плечо" },
+            "shoulderR": { "pin": 3, "min": 10, "max": 170, "home": 90, "description": "Правое плечо" },
+            "elbowL":    { "pin": 4, "min": 20, "max": 160, "home": 90, "description": "Левый локоть" },
+            "elbowR":    { "pin": 5, "min": 20, "max": 160, "home": 90, "description": "Правый локоть" }
+        },
+        "future_servos": {
+            "shoulderL2": { "pin": 6, "description": "Левое плечо 2" },
+            "shoulderR2": { "pin": 7, "description": "Правое плечо 2" },
+            "elbowL2":    { "pin": 8, "description": "Левый локоть 2" },
+            "elbowR2":    { "pin": 9, "description": "Правый локоть 2" }
+        }
+    },
+    "rgb": {
+        "pins": { "r": 3, "g": 5, "b": 6 },
+        "type": "common_cathode"
+    }
+}
