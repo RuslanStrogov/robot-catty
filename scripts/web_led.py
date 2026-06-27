@@ -25,7 +25,7 @@ MODULES = {
             "chip": "ATmega328p (CH340)",
             "status": "online",
             "modules": [
-                {"name": "RGB LED", "type": "led", "pin": "9,10,11 (PWM)", "value": "0,0,0"}
+                {"name": "RGB LED", "type": "led", "pin": "D9=R, D10=G, D11=B (PWM)", "value": "0,0,0"}
             ]
         },
         {
@@ -35,8 +35,8 @@ MODULES = {
             "chip": "ATmega2560 (CDC ACM)",
             "status": "pending",
             "modules": [
-                {"name": "Servo Scanner", "type": "servo", "pin": "2-9", "value": "90° each"},
-                {"name": "HC-SR04", "type": "sensor", "pin": "Trig:12,Echo:13", "value": "N/A"}
+                {"name": "Servo Scanner", "type": "servo", "pin": "D2-D9", "value": "90° each"},
+                {"name": "HC-SR04", "type": "sensor", "pin": "Trig:D12, Echo:D13", "value": "N/A"}
             ]
         }
     ]
@@ -197,18 +197,19 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; h
             cursor:pointer; font-size:0.8em; white-space:nowrap; }
 /* Modules panel */
 .modules-panel { margin-bottom: 16px; }
-.board-item { margin-bottom: 12px; }
+.board-item { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #2a2a4a; }
+.board-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 .board-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-.board-status { width:10px; height:10px; border-radius:50%; }
+.board-status { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 .board-status.online { background:#27ae60; box-shadow:0 0 6px rgba(39,174,96,0.5); }
 .board-status.offline { background:#e74c3c; box-shadow:0 0 6px rgba(231,76,60,0.5); }
 .board-status.pending { background:#f39c12; box-shadow:0 0 6px rgba(243,156,18,0.5); }
 .board-name { font-weight:600; font-size:1em; }
 .board-chip { font-size:0.75em; color:#888; }
+.board-port { font-size:0.7em; color:#555; font-family:monospace; }
 .module-list { padding-left:20px; border-left:2px solid #333; margin-left:5px; }
 .module-item { display:flex; justify-content:space-between; align-items:center;
-               padding:6px 0; font-size:0.88em; border-bottom:1px solid #1a1a2e; }
-.module-item:last-child { border-bottom:none; }
+               padding:6px 0; font-size:0.88em; }
 .module-name { color:#ddd; }
 .module-type { font-size:0.7em; color:#888; text-transform:uppercase;
                background:#0f3460; padding:2px 6px; border-radius:4px; margin:0 6px; }
@@ -266,7 +267,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; h
 </div>
 
 <div class="card">
-  <h2>👀 Текущий цвет</h2>
+  <h2>👀 Текущий цвет (Arduino Uno → RGB LED)</h2>
   <div class="current">
     <div class="color-preview" id="preview"></div>
     <div class="color-values" id="values">R:0 G:0 B:0</div>
@@ -405,20 +406,24 @@ async function loadModules() {
     let html = '';
     for (const board of data.boards) {
       const statusClass = board.status || 'offline';
+      const statusText = statusClass === 'online' ? 'Online' : statusClass === 'pending' ? 'Pending' : 'Offline';
       html += `<div class="board-item">
         <div class="board-header">
           <div class="board-status ${statusClass}"></div>
           <div>
             <div class="board-name">${board.name}</div>
-            <div class="board-chip">${board.chip} · ${board.port}</div>
+            <div class="board-chip">${board.chip}</div>
+            <div class="board-port">${board.port} · ${statusText}</div>
           </div>
         </div>
         <div class="module-list">`;
       for (const mod of board.modules) {
         html += `<div class="module-item">
-          <span class="module-name">${mod.name}</span>
           <span>
+            <span class="module-name">${mod.name}</span>
             <span class="module-type">${mod.type}</span>
+          </span>
+          <span>
             <span class="module-pin">${mod.pin}</span>
             <span class="module-value">${mod.value}</span>
           </span>
