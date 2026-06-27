@@ -9,12 +9,10 @@
 
 ## Raspberry Pi
 
-- IP: 192.168.10.152
-- Hostname: raspi-hermes
-- SSH: ruslan@192.168.10.152 (pass: 159357)
-- OS: Ubuntu 24.04 LTS, Kernel 6.8.0-1057-raspi, aarch64
+- OS: Ubuntu 24.04 LTS, aarch64
 - User in dialout: YES (serial access without sudo)
 - pyserial: installed
+- Node.js: v18+
 
 ## RGB LED Wiring (Arduino Uno)
 

@@ -23,6 +23,11 @@
         .animation-btn { margin: 5px; }
         .animation-btn.active { background: #e94560; border-color: #e94560; }
         #log { background: #0a0a1a; color: #0f0; font-family: monospace; font-size: 12px; height: 150px; overflow-y: auto; padding: 10px; border-radius: 5px; }
+        .module-item { display: flex; align-items: center; padding: 6px 10px; margin: 4px 0; background: #0f3460; border-radius: 6px; font-size: 13px; }
+        .module-icon { color: #e94560; margin-right: 8px; font-size: 16px; }
+        .module-name { flex: 1; font-weight: 500; }
+        .module-pin { color: #888; font-size: 11px; margin-right: 10px; }
+        .module-value { color: #00ff88; font-weight: bold; min-width: 40px; text-align: right; }
     </style>
 </head>
 <body ng-controller="MainController">
@@ -37,6 +42,61 @@
                     <i class="bi bi-play-fill"></i> {{state.animation}}
                     <button class="btn btn-sm btn-outline-danger ms-2" ng-click="stopAnimation()">Стоп</button>
                 </span>
+            </div>
+        </div>
+
+        <!-- Connected Modules Panel -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header"><i class="bi bi-cpu"></i> Подключённые модули</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Arduino Uno -->
+                            <div class="col-md-6">
+                                <h6><i class="bi bi-pc-display"></i> Arduino Uno
+                                    <span class="status-dot ms-2" ng-class="status.boards.uno ? 'status-connected' : 'status-disconnected'"></span>
+                                    <small>{{status.boards.uno ? 'Online' : 'Offline'}}</small>
+                                </h6>
+                                <div class="mb-2" ng-if="!status.boards.uno">
+                                    <small class="text-muted">Плата не подключена. Проверьте USB.</small>
+                                </div>
+                                <div class="module-list" ng-if="status.boards.uno">
+                                    <div class="module-item" ng-for="mod in modules.uno" ng-if="modules.uno.length > 0">
+                                        <span class="module-icon bi bi-gear"></span>
+                                        <span class="module-name">{{mod.name}}</span>
+                                        <span class="module-pin">Пин {{mod.pin}}</span>
+                                        <span class="module-value">{{mod.value}}{{mod.unit}}</span>
+                                    </div>
+                                    <div ng-if="!modules.uno || modules.uno.length === 0">
+                                        <small class="text-muted">Модули не обнаружены</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Arduino Mega -->
+                            <div class="col-md-6">
+                                <h6><i class="bi bi-pc-display-horizontal"></i> Arduino Mega 2560
+                                    <span class="status-dot ms-2" ng-class="status.boards.mega ? 'status-connected' : 'status-disconnected'"></span>
+                                    <small>{{status.boards.mega ? 'Online' : 'Offline'}}</small>
+                                </h6>
+                                <div class="mb-2" ng-if="!status.boards.mega">
+                                    <small class="text-muted">Плата не подключена. Проверьте USB.</small>
+                                </div>
+                                <div class="module-list" ng-if="status.boards.mega">
+                                    <div class="module-item" ng-for="mod in modules.mega" ng-if="modules.mega.length > 0">
+                                        <span class="module-icon bi bi-gear"></span>
+                                        <span class="module-name">{{mod.name}}</span>
+                                        <span class="module-pin">Пин {{mod.pin}}</span>
+                                        <span class="module-value">{{mod.value}}{{mod.unit}}</span>
+                                    </div>
+                                    <div ng-if="!modules.mega || modules.mega.length === 0">
+                                        <small class="text-muted">Модули не обнаружены</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -163,7 +223,8 @@
                 rgb: { r: 0, g: 0, b: 0 },
                 animation: null
             };
-            $scope.status = { connected: false };
+            $scope.status = { connected: false, boards: { uno: false, mega: false } };
+            $scope.modules = { uno: [], mega: [] };
             $scope.headLabels = { eyeL: 'Левый глаз', eyeR: 'Правый глаз', jaw: 'Челюсть', headRot: 'Поворот', neckUD: 'Шея ↕', neckLR: 'Шея ↔' };
             $scope.bodyLabels = { shoulderL: 'Левое плечо', shoulderR: 'Правое плечо', elbowL: 'Левый локоть', elbowR: 'Правый локоть' };
             $scope.presets = { red: {r:255,g:0,b:0}, green: {r:0,g:255,b:0}, blue: {r:0,g:0,b:255}, white: {r:255,g:255,b:255}, yellow: {r:255,g:255,b:0}, cyan: {r:0,g:255,b:255}, magenta: {r:255,g:0,b:255}, orange: {r:255,g:165,b:0}, pink: {r:255,g:192,b:203}, purple: {r:128,g:0,b:128} };
@@ -177,6 +238,12 @@
                     const msg = JSON.parse(e.data);
                     if (msg.type === 'state' || msg.type === 'init') {
                         angular.extend($scope.state, msg.data || msg.state);
+                        if (msg.data?.modules) {
+                            $scope.modules = msg.data.modules;
+                        }
+                        if (msg.data?.boards) {
+                            $scope.status.boards = msg.data.boards;
+                        }
                         $scope.$apply();
                     }
                 };

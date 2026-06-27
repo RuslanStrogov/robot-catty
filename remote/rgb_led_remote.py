@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
 Remote RGB LED Controller via Raspberry Pi SSH
+
+Edit PI_HOST, PI_USER, PI_PASS, PI_SCRIPT below for your setup.
 """
 
 import sys
 import paramiko
 
-PI_HOST = "192.168.10.152"
-PI_USER = "ruslan"
-PI_PASS = "159357"
-PI_SCRIPT = "/home/ruslan/robot-katty/scripts/rgb_led.py"
+# Configuration — edit these for your environment
+PI_HOST = ""      # Raspberry Pi IP
+PI_USER = ""      # SSH username
+PI_PASS = ""      # SSH password (or use key-based auth)
+PI_SCRIPT = ""    # Path to rgb_led.py on the Pi
 
 
 def run_on_pi(command):

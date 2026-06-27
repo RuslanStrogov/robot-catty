@@ -10,7 +10,24 @@ class RobotService extends EventEmitter {
                 body: { shoulderL: 90, shoulderR: 90, elbowL: 90, elbowR: 90 }
             },
             rgb: { r: 0, g: 0, b: 0 },
-            animation: null
+            animation: null,
+            modules: {
+                uno: [
+                    { name: 'RGB LED', pin: '9/10/11', type: 'rgb', value: 'OFF', unit: '' },
+                    { name: 'eyeL', pin: '4', type: 'servo', value: 90, unit: '°' },
+                    { name: 'eyeR', pin: '7', type: 'servo', value: 90, unit: '°' },
+                    { name: 'jaw', pin: '8', type: 'servo', value: 90, unit: '°' },
+                    { name: 'headRot', pin: '9', type: 'servo', value: 90, unit: '°' },
+                    { name: 'neckUD', pin: '10', type: 'servo', value: 90, unit: '°' },
+                    { name: 'neckLR', pin: '11', type: 'servo', value: 90, unit: '°' }
+                ],
+                mega: [
+                    { name: 'shoulderL', pin: '2', type: 'servo', value: 90, unit: '°' },
+                    { name: 'shoulderR', pin: '3', type: 'servo', value: 90, unit: '°' },
+                    { name: 'elbowL', pin: '4', type: 'servo', value: 90, unit: '°' },
+                    { name: 'elbowR', pin: '5', type: 'servo', value: 90, unit: '°' }
+                ]
+            }
         };
         this.animationInterval = null;
         this.presets = {
@@ -43,6 +60,8 @@ class RobotService extends EventEmitter {
 
     setRGB(r, g, b) {
         this.state.rgb = { r, g, b };
+        const hex = (r || g || b) ? '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('') : 'OFF';
+        if (this.state.modules.uno[0]) this.state.modules.uno[0].value = hex;
         this.arduino.sendUno(`RGB:${r},${g},${b}`);
         this.emit('state', this.state);
     }
