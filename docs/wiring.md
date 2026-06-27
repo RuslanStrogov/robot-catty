@@ -84,5 +84,5 @@ npm install
 npm start
 
 # Автозапуск через crontab
-@reboot cd /home/ruslan/robot-katty/server && npm start
+@reboot cd /path/to/robot-catty/server && npm start
 ```
