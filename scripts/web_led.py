@@ -456,6 +456,16 @@ class LEDHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(HTML_PAGE.encode('utf-8'))
 
+        elif self.path == '/mini-app' or self.path == '/mini-app/index.html':
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            try:
+                with open('/home/ruslan/robot-katty/telegram-mini-app/index.html', 'r') as f:
+                    self.wfile.write(f.read().encode('utf-8'))
+            except FileNotFoundError:
+                self.wfile.write(b'Mini App not deployed yet')
+
         elif self.path.startswith('/set?'):
             from urllib.parse import urlparse, parse_qs
             qs = parse_qs(urlparse(self.path).query)
