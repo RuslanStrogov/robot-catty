@@ -129,16 +129,17 @@ HTML_PAGE = """<!DOCTYPE html>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-       background: #1a1a2e; color: #eee; min-height: 100vh; display:flex;
-       flex-direction:column; align-items:center; padding: 20px; }
-h1 { font-size: 1.8em; margin-bottom: 5px; }
-.subtitle { color: #888; margin-bottom: 20px; }
+       background: #1a1a2e; color: #eee; min-height: 100vh; padding: 20px; }
+h1 { font-size: 1.8em; margin-bottom: 5px; text-align:center; }
+.subtitle { color: #888; margin-bottom: 20px; text-align:center; }
 .links { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; justify-content:center; }
 .links a { color:#7ec8e3; text-decoration:none; padding:6px 14px; border:1px solid #7ec8e3;
            border-radius:8px; font-size:0.85em; transition:background 0.2s; }
 .links a:hover { background:#7ec8e3; color:#1a1a2e; }
-.card { background: #16213e; border-radius: 16px; padding: 24px; margin: 10px;
-        width: 100%; max-width: 420px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;
+             max-width: 1600px; margin: 0 auto; width: 100%; }
+.card { background: #16213e; border-radius: 16px; padding: 24px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
 .card h2 { font-size: 1.1em; margin-bottom: 16px; color: #7ec8e3; }
 .current { display:flex; align-items:center; gap:16px; margin-bottom:12px; }
 .color-preview { width:60px; height:60px; border-radius:50%; border:3px solid #333;
@@ -226,6 +227,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; h
   <a href="/" onclick="copyLink(event)">📋 Copy link</a>
 </div>
 
+<div class="container">
 <div class="card">
   <h2>📖 О проекте</h2>
   <p style="font-size:0.88em;color:#bbb;line-height:1.6;margin-bottom:12px">
@@ -318,6 +320,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; h
 </div>
 
 <div class="status" id="status"></div>
+</div>
 
 <script>
 const presets = {
