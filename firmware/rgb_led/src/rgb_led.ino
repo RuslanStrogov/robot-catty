@@ -3,9 +3,9 @@
  * Arduino Uno (CH340)
  *
  * Wiring (common cathode RGB LED):
- *   Pin 9  (PWM) ---[220Ω]--- RED
- *   Pin 10 (PWM) ---[220Ω]--- GREEN
- *   Pin 11 (PWM) ---[220Ω]--- BLUE
+ *   Pin 3  (PWM) ---[220Ω]--- RED
+ *   Pin 5  (PWM) ---[220Ω]--- GREEN
+ *   Pin 6  (PWM) ---[220Ω]--- BLUE
  *   GND --- CATHODE
  *
  * Serial protocol (9600 baud, newline-terminated):
@@ -14,9 +14,9 @@
  *   "STATUS\n"  Query current state
  */
 
-#define PIN_RED   9
-#define PIN_GREEN 10
-#define PIN_BLUE  11
+#define PIN_RED   3
+#define PIN_GREEN 5
+#define PIN_BLUE  6
 
 int currentR = 0, currentG = 0, currentB = 0;
 
