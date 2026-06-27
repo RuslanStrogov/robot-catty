@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Robot Catty</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       background: var(--tg-theme-bg-color, #1a1a2e);
+       color: var(--tg-theme-text-color, #eee);
+       min-height: 100vh; padding: 16px; }
+h1 { font-size: 1.4em; margin-bottom: 4px; text-align:center; }
+.subtitle { color: var(--tg-theme-hint-color, #888); margin-bottom: 16px; text-align:center; font-size:0.85em; }
+.container { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;
+             max-width: 600px; margin: 0 auto; }
+.card { background: var(--tg-theme-secondary-bg-color, #16213e); border-radius: 12px; padding: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+.card h2 { font-size: 0.95em; margin-bottom: 12px; color: var(--tg-theme-link-color, #7ec8e3); }
+.current { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.color-preview { width:44px; height:44px; border-radius:50%; border:3px solid #333;
+                 transition: background 0.3s; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
+.color-values { font-family: monospace; font-size:0.95em; }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.preset-btn { padding: 10px 6px; border: none; border-radius: 8px; color: #fff;
+              font-size: 0.75em; font-weight: 600; cursor: pointer;
+              transition: transform 0.15s; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.preset-btn:hover { transform: scale(1.05); }
+.preset-btn:active { transform: scale(0.95); }
+.slider-group { margin: 6px 0; }
+.slider-group label { display:flex; justify-content:space-between; margin-bottom:3px; font-size:0.8em; }
+input[type=range] { width:100%; height:6px; -webkit-appearance:none; border-radius:3px; outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px;
+                                           border-radius:50%; cursor:pointer; border:2px solid #fff; }
+#slider-r { background: linear-gradient(to right, #000, #f00); }
+#slider-r::-webkit-slider-thumb { background: #f44; }
+#slider-g { background: linear-gradient(to right, #000, #0f0); }
+#slider-g::-webkit-slider-thumb { background: #4f4; }
+#slider-b { background: linear-gradient(to right, #000, #00f); }
+#slider-b::-webkit-slider-thumb { background: #44f; }
+.btn-row { display:flex; gap:8px; margin-top:10px; }
+.btn { flex:1; padding:10px; border:none; border-radius:8px; font-size:0.9em; font-weight:600;
+       cursor:pointer; }
+.btn-off { background:#e74c3c; color:#fff; }
+.btn-apply { background:#27ae60; color:#fff; }
+.blink-controls { display:flex; gap:6px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+.blink-controls label { font-size:0.75em; }
+.blink-controls input { width:55px; padding:4px; border-radius:5px; border:1px solid #444;
+                        background: var(--tg-theme-secondary-bg-color, #2a2a4a);
+                        color: var(--tg-theme-text-color, #eee); font-size:0.8em; }
+.blink-btn { padding:6px 12px; border:none; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.8em; }
+.blink-start { background:#e67e22; color:#fff; }
+.blink-stop { background:#95a5a6; color:#fff; }
+.status { text-align:center; margin-top:8px; font-size:0.8em; color: var(--tg-theme-hint-color, #aaa); }
+.cat-face { font-size: 2.5em; text-align: center; margin-bottom: 8px; }
+.cat-eyes { display:flex; justify-content:center; gap:16px; margin:4px 0; }
+.cat-eye { width:16px; height:16px; border-radius:50%; transition: background 0.3s, opacity 0.3s; }
+.modules-panel { margin-bottom: 12px; }
+.board-item { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.board-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.board-header { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.board-status { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.board-status.online { background:#27ae60; }
+.board-status.offline { background:#e74c3c; }
+.board-status.pending { background:#f39c12; }
+.board-name { font-weight:600; font-size:0.9em; }
+.board-chip { font-size:0.7em; color: var(--tg-theme-hint-color, #888); }
+.module-list { padding-left:14px; border-left:2px solid #333; margin-left:4px; }
+.module-item { display:flex; justify-content:space-between; align-items:center;
+               padding:4px 0; font-size:0.8em; }
+.module-type { font-size:0.65em; color:#888; text-transform:uppercase;
+               background:#0f3460; padding:1px 4px; border-radius:3px; margin:0 4px; }
+.module-pin { font-family:monospace; font-size:0.75em; color:#7ec8e3; }
+.module-value { font-family:monospace; font-size:0.8em; color:#f39c12; }
+</style>
+</head>
+<body>
+<div class="cat-face">🐱</div>
+<h1>Robot Catty</h1>
+<div class="subtitle">RGB LED Controller</div>
+
+<div class="container">
+<div class="card">
+  <h2>🔌 Модули</h2>
+  <div id="modules" class="modules-panel">
+    <div class="status">Загрузка...</div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>👀 Текущий цвет</h2>
+  <div class="current">
+    <div class="color-preview" id="preview"></div>
+    <div class="color-values" id="values">R:0 G:0 B:0</div>
+  </div>
+  <div class="cat-eyes">
+    <div class="cat-eye" id="eye-l"></div>
+    <div class="cat-eye" id="eye-r"></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🎨 Пресеты</h2>
+  <div class="presets" id="presets"></div>
+</div>
+
+<div class="card">
+  <h2>🌈 Кастомный цвет</h2>
+  <div class="slider-group">
+    <label><span>Red</span><span id="rv">0</span></label>
+    <input type="range" id="slider-r" min="0" max="255" value="0">
+  </div>
+  <div class="slider-group">
+    <label><span>Green</span><span id="gv">0</span></label>
+    <input type="range" id="slider-g" min="0" max="255" value="0">
+  </div>
+  <div class="slider-group">
+    <label><span>Blue</span><span id="bv">0</span></label>
+    <input type="range" id="slider-b" min="0" max="255" value="0">
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-off" onclick="sendOff()">⏻ Выкл</button>
+    <button class="btn btn-apply" onclick="sendCustom()">✓ Применить</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>💡 Моргание</h2>
+  <div class="blink-controls">
+    <label>Вкл (мс)</label>
+    <input type="number" id="blink-on" value="1500">
+    <label>Выкл (мс)</label>
+    <input type="number" id="blink-off" value="1500">
+  </div>
+  <div class="btn-row" style="margin-top:8px">
+    <button class="btn blink-start" onclick="startBlink()">⚡ Моргать</button>
+    <button class="btn blink-stop" onclick="stopBlink()">⏹ Стоп</button>
+  </div>
+</div>
+</div>
+
+<div class="status" id="status"></div>
+
+<script>
+// Initialize Telegram Web App
+let tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+}
+
+// API endpoint - same web server
+const API = '';
+
+const presets = {
+  'Red': [255,0,0], 'Green': [0,255,0], 'Blue': [0,0,255], 'White': [255,255,255],
+  'Yellow': [255,255,0], 'Cyan': [0,255,255], 'Magenta': [255,0,255], 'Orange': [255,165,0],
+  'Pink': [255,20,147], 'Purple': [128,0,128], 'Warm': [255,147,41]
+};
+
+const presetsEl = document.getElementById('presets');
+for (const [name, rgb] of Object.entries(presets)) {
+  const btn = document.createElement('button');
+  btn.className = 'preset-btn';
+  btn.style.background = `rgb(${rgb.join(',')})`;
+  btn.textContent = name;
+  btn.onclick = () => sendColor(...rgb);
+  presetsEl.appendChild(btn);
+}
+
+const sliderR = document.getElementById('slider-r');
+const sliderG = document.getElementById('slider-g');
+const sliderB = document.getElementById('slider-b');
+
+function updateSliders(r, g, b) {
+  sliderR.value = r; sliderG.value = g; sliderB.value = b;
+  document.getElementById('rv').textContent = r;
+  document.getElementById('gv').textContent = g;
+  document.getElementById('bv').textContent = b;
+  const c = `rgb(${r},${g},${b})`;
+  document.getElementById('preview').style.background = c;
+  document.getElementById('eye-l').style.background = c;
+  document.getElementById('eye-r').style.background = c;
+}
+
+[sliderR, sliderG, sliderB].forEach(s => {
+  s.addEventListener('input', () => {
+    updateSliders(+sliderR.value, +sliderG.value, +sliderB.value);
+  });
+});
+
+async function api(path) {
+  const r = await fetch(API + path);
+  return r.json();
+}
+
+async function sendColor(r, g, b) {
+  updateSliders(r, g, b);
+  const res = await api(`/set?r=${r}&g=${g}&b=${b}`);
+  document.getElementById('status').textContent = res.msg || 'OK';
+  if (tg) tg.HapticFeedback?.impactOccurred('light');
+}
+
+async function sendOff() {
+  await api('/off');
+  updateSliders(0, 0, 0);
+  document.getElementById('status').textContent = 'LED off';
+}
+
+async function sendCustom() {
+  sendColor(+sliderR.value, +sliderG.value, +sliderB.value);
+}
+
+async function startBlink() {
+  const onMs = document.getElementById('blink-on').value;
+  const offMs = document.getElementById('blink-off').value;
+  const r = +sliderR.value, g = +sliderG.value, b = +sliderB.value;
+  if (r===0 && g===0 && b===0) { alert('Choose a color first!'); return; }
+  const res = await api(`/blink?r=${r}&g=${g}&b=${b}&on=${onMs}&off=${offMs}`);
+  document.getElementById('status').textContent = res.msg || 'Blinking';
+}
+
+async function stopBlink() {
+  await api('/blink/stop');
+  document.getElementById('status').textContent = 'Blink stopped';
+}
+
+async function refresh() {
+  try {
+    const res = await api('/status');
+    if (res.color) updateSliders(...res.color);
+  } catch(e) {}
+}
+
+async function loadModules() {
+  try {
+    const data = await api('/api/modules');
+    const container = document.getElementById('modules');
+    let html = '';
+    for (const board of data.boards) {
+      const statusClass = board.status || 'offline';
+      html += `<div class="board-item">
+        <div class="board-header">
+          <div class="board-status ${statusClass}"></div>
+          <div>
+            <div class="board-name">${board.name}</div>
+            <div class="board-chip">${board.chip}</div>
+          </div>
+        </div>
+        <div class="module-list">`;
+      for (const mod of board.modules) {
+        html += `<div class="module-item">
+          <span>${mod.name}<span class="module-type">${mod.type}</span></span>
+          <span><span class="module-pin">${mod.pin}</span> <span class="module-value">${mod.value}</span></span>
+        </div>`;
+      }
+      html += `</div></div>`;
+    }
+    container.innerHTML = html;
+  } catch(e) {
+    document.getElementById('modules').innerHTML = '<div class="status">Не удалось загрузить</div>';
+  }
+}
+
+refresh();
+loadModules();
+setInterval(refresh, 3000);
+setInterval(loadModules, 10000);
+</script>
+</body>
+</html>
