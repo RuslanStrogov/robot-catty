@@ -13,9 +13,9 @@
 
 Откройте `docs/robot-catty-circuit.html` в браузере для просмотра полной интерактивной схемы.
 
-![Circuit Schematic](images/circuit-schematic.png)
+![Circuit Schematic](https://raw.githubusercontent.com/RuslanStrogov/robot-catty/master/docs/images/circuit-schematic.png)
 
-![Wiring Diagram](images/wiring-diagram.png)
+![Wiring Diagram](https://raw.githubusercontent.com/RuslanStrogov/robot-catty/master/docs/images/wiring-diagram.png)
 
 ## Сервоприводы
 
