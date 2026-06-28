@@ -1,0 +1,19 @@
+{
+  "name": "robot-catty",
+  "version": "1.0.0",
+  "description": "Robot Catty — мобильное приложение управления роботом (Capacitor + Android)",
+  "private": true,
+  "scripts": {
+    "start": "cd server && node server.js",
+    "build:web": "echo 'Static web — no build step needed'",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "android:build": "cd android && gradlew assembleDebug",
+    "android:install": "cd android && gradlew installDebug"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/android": "^6.0.0"
+  }
+}

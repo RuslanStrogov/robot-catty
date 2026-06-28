@@ -1,22 +1,5 @@
 node_modules/
-*.log
+android/
 .DS_Store
-Thumbs.db
-server/public/bower_components/
-
-# PlatformIO build output
-.pio/
-*.hex
-
-# Temporary scripts
-check_*.py
-deploy_*.py
-flash_*.py
-hermes_*.pi
-pi_*.py
-start_*.py
-restart_*.py
-run_test_*.py
-test_api.py
-test_led.py
-flash_mega_windows.py
+*.log
+.env
