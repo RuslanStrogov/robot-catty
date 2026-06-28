@@ -73,6 +73,10 @@
             border-radius: 8px;
             padding: 16px;
         }
+        .servo-card.disabled {
+            opacity: 0.4;
+            border-style: dashed;
+        }
         .servo-card h3 {
             color: #f0f6fc;
             font-size: 0.95em;
@@ -224,29 +228,45 @@
             </div>
         </div>
 
-        <!-- Head Servos -->
+        <!-- Head Servos (Arduino Uno: 6 серво + RGB) -->
         <div class="panel">
-            <h2>👁️ Голова (Arduino Uno)</h2>
+            <h2>👁️ Голова — Arduino Uno</h2>
             <div class="servo-grid">
                 <div class="servo-card">
                     <h3>👁️ Левый глаз <span class="servo-value" id="eyeL-val">90°</span></h3>
-                    <input type="range" id="eyeL" min="0" max="180" value="90" oninput="updateServo('eyeL', this.value)">
-                    <div class="servo-labels"><span>0° влево</span><span>90° центр</span><span>180° вправо</span></div>
+                    <input type="range" id="eyeL" min="45" max="135" value="90" oninput="updateServo('eyeL', this.value)">
+                    <div class="servo-labels"><span>45° влево</span><span>90° прямо</span><span>135° вправо</span></div>
                 </div>
                 <div class="servo-card">
                     <h3>👁️ Правый глаз <span class="servo-value" id="eyeR-val">90°</span></h3>
-                    <input type="range" id="eyeR" min="0" max="180" value="90" oninput="updateServo('eyeR', this.value)">
-                    <div class="servo-labels"><span>0° влево</span><span>90° центр</span><span>180° вправо</span></div>
+                    <input type="range" id="eyeR" min="45" max="135" value="90" oninput="updateServo('eyeR', this.value)">
+                    <div class="servo-labels"><span>45° влево</span><span>90° прямо</span><span>135° вправо</span></div>
                 </div>
                 <div class="servo-card">
                     <h3>🦷 Челюсть <span class="servo-value" id="jaw-val">90°</span></h3>
-                    <input type="range" id="jaw" min="0" max="180" value="90" oninput="updateServo('jaw', this.value)">
-                    <div class="servo-labels"><span>0° закрыта</span><span>90°</span><span>180° открыта</span></div>
+                    <input type="range" id="jaw" min="60" max="120" value="90" oninput="updateServo('jaw', this.value)">
+                    <div class="servo-labels"><span>60° закрыта</span><span>90°</span><span>120° широко</span></div>
+                </div>
+                <div class="servo-card">
+                    <h3>🔄 Поворот <span class="servo-value" id="headRot-val">90°</span></h3>
+                    <input type="range" id="headRot" min="30" max="150" value="90" oninput="updateServo('headRot', this.value)">
+                    <div class="servo-labels"><span>30°</span><span>90° прямо</span><span>150°</span></div>
+                </div>
+                <div class="servo-card">
+                    <h3>↕️ Шея <span class="servo-value" id="neckUD-val">90°</span></h3>
+                    <input type="range" id="neckUD" min="50" max="130" value="90" oninput="updateServo('neckUD', this.value)">
+                    <div class="servo-labels"><span>50° вниз</span><span>90°</span><span>130° вверх</span></div>
+                </div>
+                <div class="servo-card">
+                    <h3>↔️ Шея <span class="servo-value" id="neckLR-val">90°</span></h3>
+                    <input type="range" id="neckLR" min="40" max="140" value="90" oninput="updateServo('neckLR', this.value)">
+                    <div class="servo-labels"><span>40° лево</span><span>90°</span><span>140° право</span></div>
                 </div>
             </div>
             <div class="btn-group">
-                <button class="btn" onclick="sendCmd('HOME')">🏠 Центр</button>
+                <button class="btn" onclick="sendCmd('HOME')">🏠 Центр (90°)</button>
                 <button class="btn" onclick="sendCmd('STATUS')">📊 Статус</button>
+                <button class="btn" onclick="sendCmd('BLINK')">✨ Мигание</button>
             </div>
         </div>
 
@@ -289,31 +309,66 @@
 
         <!-- Body Servos -->
         <div class="panel">
-            <h2>🦾 Тело (Arduino Mega)</h2>
+            <h2>🦾 Тело — Arduino Mega</h2>
             <div class="servo-grid">
                 <div class="servo-card">
-                    <h3>Плечо L <span class="servo-value" id="shoulderL-val">90°</span></h3>
-                    <input type="range" id="shoulderL" min="0" max="180" value="90" oninput="updateServo('shoulderL', this.value)">
-                    <div class="servo-labels"><span>0°</span><span>90°</span><span>180°</span></div>
+                    <h3>💪 Плечо L <span class="servo-value" id="shoulderL-val">90°</span></h3>
+                    <input type="range" id="shoulderL" min="10" max="170" value="90" oninput="updateServo('shoulderL', this.value)">
+                    <div class="servo-labels"><span>10°</span><span>90°</span><span>170°</span></div>
                 </div>
                 <div class="servo-card">
-                    <h3>Плечо R <span class="servo-value" id="shoulderR-val">90°</span></h3>
-                    <input type="range" id="shoulderR" min="0" max="180" value="90" oninput="updateServo('shoulderR', this.value)">
-                    <div class="servo-labels"><span>0°</span><span>90°</span><span>180°</span></div>
+                    <h3>💪 Плечо R <span class="servo-value" id="shoulderR-val">90°</span></h3>
+                    <input type="range" id="shoulderR" min="10" max="170" value="90" oninput="updateServo('shoulderR', this.value)">
+                    <div class="servo-labels"><span>10°</span><span>90°</span><span>170°</span></div>
                 </div>
                 <div class="servo-card">
-                    <h3>Локоть L <span class="servo-value" id="elbowL-val">90°</span></h3>
-                    <input type="range" id="elbowL" min="0" max="180" value="90" oninput="updateServo('elbowL', this.value)">
-                    <div class="servo-labels"><span>0°</span><span>90°</span><span>180°</span></div>
+                    <h3>🦴 Локоть L <span class="servo-value" id="elbowL-val">90°</span></h3>
+                    <input type="range" id="elbowL" min="20" max="160" value="90" oninput="updateServo('elbowL', this.value)">
+                    <div class="servo-labels"><span>20°</span><span>90°</span><span>160°</span></div>
                 </div>
                 <div class="servo-card">
-                    <h3>Локоть R <span class="servo-value" id="elbowR-val">90°</span></h3>
-                    <input type="range" id="elbowR" min="0" max="180" value="90" oninput="updateServo('elbowR', this.value)">
-                    <div class="servo-labels"><span>0°</span><span>90°</span><span>180°</span></div>
+                    <h3>🦴 Локоть R <span class="servo-value" id="elbowR-val">90°</span></h3>
+                    <input type="range" id="elbowR" min="20" max="160" value="90" oninput="updateServo('elbowR', this.value)">
+                    <div class="servo-labels"><span>20°</span><span>90°</span><span>160°</span></div>
+                </div>
+                <div class="servo-card disabled">
+                    <h3>🔮 Плечо L2 <span class="servo-value">—</span></h3>
+                    <input type="range" disabled>
+                    <div class="servo-labels"><span>Резерв</span></div>
+                </div>
+                <div class="servo-card disabled">
+                    <h3>🔮 Плечо R2 <span class="servo-value">—</span></h3>
+                    <input type="range" disabled>
+                    <div class="servo-labels"><span>Резерв</span></div>
+                </div>
+                <div class="servo-card disabled">
+                    <h3>🔮 Локоть L2 <span class="servo-value">—</span></h3>
+                    <input type="range" disabled>
+                    <div class="servo-labels"><span>Резерв</span></div>
+                </div>
+                <div class="servo-card disabled">
+                    <h3>🔮 Локоть R2 <span class="servo-value">—</span></h3>
+                    <input type="range" disabled>
+                    <div class="servo-labels"><span>Резерв</span></div>
                 </div>
             </div>
             <div class="btn-group">
-                <button class="btn" onclick="sendCmd('CENTER')">🏠 Центр</button>
+                <button class="btn" onclick="sendCmd('CENTER')">🏠 Центр (90°)</button>
+            </div>
+        </div>
+
+        <!-- Animations -->
+        <div class="panel">
+            <h2>🎬 Анимации</h2>
+            <div class="btn-group">
+                <button class="btn" onclick="sendAnimation('wave')">👋 Махать</button>
+                <button class="btn" onclick="sendAnimation('nod')">🗣️ Кивание</button>
+                <button class="btn" onclick="sendAnimation('shake')">🤯 Мотать головой</button>
+                <button class="btn" onclick="sendAnimation('lookAround')">👀 Оглядываться</button>
+                <button class="btn" onclick="sendAnimation('blink')">✨ Мигание RGB</button>
+            </div>
+            <div class="btn-group" style="margin-top: 8px;">
+                <button class="btn btn-danger" onclick="stopAnimation()">⏹ Стоп</button>
             </div>
         </div>
 
@@ -385,9 +440,26 @@
 
         function updateServo(name, value) {
             document.getElementById(name + '-val').textContent = value + '°';
-            const board = ['eyeL','eyeR','jaw'].includes(name) ? 'head' : 'body';
+            const headServos = ['eyeL','eyeR','jaw','headRot','neckUD','neckLR'];
+            const board = headServos.includes(name) ? 'head' : 'body';
             const cmd = JSON.stringify({ type: 'servo', board, servo: name, angle: parseInt(value) });
             log('→ SERVO:' + name + ':' + value, 'cmd');
+            if (ws && connected) {
+                ws.send(cmd);
+            }
+        }
+
+        function sendAnimation(name) {
+            const cmd = JSON.stringify({ type: 'animation', name });
+            log('→ ANIMATION:' + name, 'cmd');
+            if (ws && connected) {
+                ws.send(cmd);
+            }
+        }
+
+        function stopAnimation() {
+            const cmd = JSON.stringify({ type: 'stop' });
+            log('→ STOP', 'cmd');
             if (ws && connected) {
                 ws.send(cmd);
             }
