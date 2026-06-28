@@ -380,6 +380,16 @@ arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 firmware/servo_body/
 
 </div>
 
+## 🎨 Фан-арты прототипов интерфейса
+
+<div align="center">
+
+| Прототип 1 | Прототип 2 | Прототип 3 |
+|:---:|:---:|:---:|
+| ![UI Prototype 1](docs/images/ui-prototypes/proto_1.jpg) | ![UI Prototype 2](docs/images/ui-prototypes/proto_2.jpg) | ![UI Prototype 3](docs/images/ui-prototypes/proto_3.jpg) |
+
+</div>
+
 ## 📝 Блог по разработке
 
 - **Telegram**: [http://t.me/itvpi](http://t.me/itvpi)
