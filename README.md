@@ -1,5 +1,26 @@
 # 🤖 Robot Catty
 
+<div align="center">
+
+```
+  ╔═══════════════════════════════════════════════════════════╗
+  ║  ██████╗  ██████╗ ██████╗  ██████╗ ████████╗           ║
+  ║  ██╔══██╗██╔═══██╗██╔══██╗██╔═══██╗╚══██╔══╝           ║
+  ║  ██████╔╝██║   ██║██████╔╝██║   ██║   ██║              ║
+  ║  ██╔══██╗██║   ██║██╔══██╗██║   ██║   ██║              ║
+  ║  ██║  ██║╚██████╔╝██████╔╝╚██████╔╝   ██║              ║
+  ║  ╚═╝  ╚═╝ ╚═════╝ ╚═════╝  ╚═════╝    ╚═╝              ║
+  ║                                                         ║
+  ║   🐱 Raspberry Pi + Arduino Robot                       ║
+  ║   3 серво (глаза + челюсть) + RGB LED + Web UI         ║
+  ╚═══════════════════════════════════════════════════════════╝
+```
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%20%2B%20Arduino-blue.svg)](https://www.arduino.cc/)
+
+</div>
+
 Raspberry Pi + Arduino робот с веб-интерфейсом управления.
 
 ## ⚡ Схема подключения
@@ -363,6 +384,18 @@ arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 firmware/servo_body/
 - Mega 2560: Servo library конфликтует с Timer1 — используйте прямую ШИМ или `Servo.h` с `lib_deps`
 
 Подробнее в [ISSUES.md](ISSUES.md)
+
+## 📸 Галерея
+
+<div align="center">
+
+|  |  |  |
+|:---:|:---:|:---:|
+| ![Photo 1](docs/images/photo_1.jpg) | ![Photo 2](docs/images/photo_2.jpg) | ![Photo 3](docs/images/photo_3.jpg) |
+| ![Photo 4](docs/images/photo_4.jpg) | ![Photo 5](docs/images/photo_5.jpg) | ![Photo 6](docs/images/photo_6.jpg) |
+| ![Photo 7](docs/images/photo_7.jpg) | ![Photo 8](docs/images/photo_8.jpg) | |
+
+</div>
 
 ## Лицензия
 

@@ -1,6 +1,11 @@
 /*
  * Robot Catty — Head Controller (Arduino Uno)
- * 3 servos (2 eyes + jaw) + RGB LED
+ * 2 servos (eyes L/R together + jaw) + RGB LED
+ * 
+ * Механика:
+ *   eyeLR  — оба глаза влево/вправо (D4)
+ *   eyeUD  — оба глаза вверх/вниз (D7)
+ *   jaw    — челюсть (D8)
  * 
  * Protocol:
  *   SERVO:<name>:<angle>  — set servo angle (0-180)
@@ -21,12 +26,12 @@
 #define PIN_B 6
 
 // Servo pins
-#define PIN_EYE_L    4
-#define PIN_EYE_R    7
-#define PIN_JAW      8
+#define PIN_EYE_LR   4   // Оба глаза влево-право
+#define PIN_EYE_UD   7   // Оба глаза вверх-вниз
+#define PIN_JAW      8   // Челюсть
 
 // Servo objects
-Servo servoEyeL, servoEyeR, servoJaw;
+Servo servoEyeLR, servoEyeUD, servoJaw;
 
 struct ServoMap {
     const char* name;
@@ -36,9 +41,9 @@ struct ServoMap {
 };
 
 ServoMap servos[] = {
-    {"eyeL",  servoEyeL,  90, 90},
-    {"eyeR",  servoEyeR,  90, 90},
-    {"jaw",   servoJaw,   90, 90}
+    {"eyeLR",  servoEyeLR,  90, 90},
+    {"eyeUD",  servoEyeUD,  90, 90},
+    {"jaw",    servoJaw,    90, 90}
 };
 const int NUM_SERVOS = 3;
 
@@ -70,8 +75,8 @@ void setup() {
     Serial.begin(9600);
     
     // Attach servos
-    servoEyeL.attach(PIN_EYE_L);
-    servoEyeR.attach(PIN_EYE_R);
+    servoEyeLR.attach(PIN_EYE_LR);
+    servoEyeUD.attach(PIN_EYE_UD);
     servoJaw.attach(PIN_JAW);
     
     // Center all servos
@@ -137,7 +142,6 @@ void loop() {
 
 void processCommand(String cmd) {
     if (cmd.startsWith("SERVO:")) {
-        // SERVO:name:angle
         int sep1 = cmd.indexOf(':', 6);
         if (sep1 > 0) {
             String name = cmd.substring(6, sep1);
