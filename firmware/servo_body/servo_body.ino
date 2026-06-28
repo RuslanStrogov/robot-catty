@@ -17,27 +17,33 @@
 #define PIN_ELBOW_R     5
 
 // Future expansion pins
-// #define PIN_SHOULDER_L2  6
-// #define PIN_SHOULDER_R2  7
-// #define PIN_ELBOW_L2     8
-// #define PIN_ELBOW_R2     9
+#define PIN_SHOULDER_L2  6
+#define PIN_SHOULDER_R2  7
+#define PIN_ELBOW_L2     8
+#define PIN_ELBOW_R2     9
 
 Servo servoShoulderL, servoShoulderR, servoElbowL, servoElbowR;
+Servo servoShoulderL2, servoShoulderR2, servoElbowL2, servoElbowR2;
 
 struct ServoMap {
     const char* name;
     Servo& servo;
     int current;
     int target;
+    bool attached;
 };
 
 ServoMap servos[] = {
-    {"shoulderL", servoShoulderL, 90, 90},
-    {"shoulderR", servoShoulderR, 90, 90},
-    {"elbowL",    servoElbowL,    90, 90},
-    {"elbowR",    servoElbowR,    90, 90}
+    {"shoulderL",  servoShoulderL,  90, 90, true},
+    {"shoulderR",  servoShoulderR,  90, 90, true},
+    {"elbowL",     servoElbowL,     90, 90, true},
+    {"elbowR",     servoElbowR,     90, 90, true},
+    {"shoulderL2", servoShoulderL2, 90, 90, false},
+    {"shoulderR2", servoShoulderR2, 90, 90, false},
+    {"elbowL2",    servoElbowL2,    90, 90, false},
+    {"elbowR2",    servoElbowR2,    90, 90, false}
 };
-const int NUM_SERVOS = 4;
+const int NUM_SERVOS = 8;
 
 void setup() {
     Serial.begin(9600);
@@ -46,10 +52,12 @@ void setup() {
     servoShoulderR.attach(PIN_SHOULDER_R);
     servoElbowL.attach(PIN_ELBOW_L);
     servoElbowR.attach(PIN_ELBOW_R);
-    
+
     for (int i = 0; i < NUM_SERVOS; i++) {
         servos[i].servo.write(90);
     }
+
+    Serial.println("READY:BODY:v2");
     
     Serial.println("READY:BODY");
 }
@@ -63,6 +71,7 @@ void loop() {
     
     // Smooth movement
     for (int i = 0; i < NUM_SERVOS; i++) {
+        if (!servos[i].attached) continue;
         if (servos[i].current != servos[i].target) {
             int diff = servos[i].target - servos[i].current;
             if (abs(diff) <= 1) {
@@ -103,11 +112,14 @@ void processCommand(String cmd) {
     }
     else if (cmd.equals("STATUS")) {
         Serial.print("STATUS:servos=");
+        bool first = true;
         for (int i = 0; i < NUM_SERVOS; i++) {
-            if (i > 0) Serial.print(",");
+            if (!servos[i].attached) continue;
+            if (!first) Serial.print(",");
             Serial.print(servos[i].name);
             Serial.print(":");
             Serial.print(servos[i].current);
+            first = false;
         }
         Serial.println();
     }
