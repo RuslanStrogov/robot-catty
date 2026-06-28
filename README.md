@@ -14,7 +14,8 @@
   ║  ╚═╝  ╚═╝ ╚═════╝ ╚═════╝  ╚═════╝    ╚═╝              ║
   ║                                                         ║
   ║   🐱 Raspberry Pi + Arduino Robot                       ║
-  ║   3 серво (глаза + челюсть) + RGB LED + Web UI         ║
+  ║   6 серво (голова + шея) + 4 серво (тело) + RGB LED    ║
+  ║   Web UI + Telegram Bot + API                           ║
   ╚═══════════════════════════════════════════════════════════╝
 ```
 
@@ -23,90 +24,45 @@
 
 </div>
 
-Raspberry Pi + Arduino робот с веб-интерфейсом управления.
+Raspberry Pi + Arduino робот с веб-интерфейсом управления, Telegram ботом и REST API.
 
 ## 📑 Оглавление
 
-- [⚡ Схема подключения](#-схема-подключения)
 - [🏗️ Архитектура](#-архитектура)
-- [📦 Компоненты](#-компоненты)
-- [🔌 Подключённые модули](#-подключённые-модули)
+- [⚡ Подключение и питание](#-подключение-и-питание)
+- [💻 Управление и API](#-управление-и-api)
+- [🚀 Установка и запуск](#-установка-и-запуск)
 - [📁 Структура проекта](#-структура-проекта)
-- [⚙️ Сервоприводы](#-сервоприводы)
-- [💡 RGB LED](#-rgb-led)
-- [📡 Serial протокол](#-serial-протокол-9600-baud)
-- [🎮 Ручное управление](#-ручное-управление)
-- [🔗 API](#-api)
-- [🎬 Демо режим](#-демо-режим)
-- [🤖 Telegram бот](#-telegram-бот)
-- [📥 Установка на Raspberry Pi](#-установка-на-raspberry-pi)
-- [⬇️ Загрузка скетчей](#-загрузка-скетчей)
-- [🔋 Питание](#-питание)
 - [⚠️ Известные проблемы](#-известные-проблемы)
 - [📸 Галерея](#-галерея)
-- [🎨 Фан-арты](#-фан-арты-прототипов-интерфейса)
-- [📝 Блог по разработке](#-блог-по-разработке)
-- [📄 Лицензия](#-лицензия)
+- [📝 Блог и лицензия](#-блог-и-лицензия)
 
 ---
 
-## ⚡ Схема подключения
-
-### Превью
-
-| Схема подключения | Проводка |
-|:---:|:---:|
-| ![Circuit Schematic](docs/images/circuit-schematic.png) | ![Wiring Diagram](docs/images/wiring-diagram.png) |
-
-### Интерактивные схемы
-
-- 🔗 [Полная интерактивная схема](docs/robot-catty-circuit.html) — кликабельная SVG с подробными подписями
-- 📄 [Wiring документация](docs/wiring.md) — текстовое описание подключения
-
-### Краткое описание
-
-```
-Arduino Uno (Голова)  ←USB→  Raspberry Pi 3B  ←USB→  Arduino Mega (Тело)
-  D3→RGB R  (220Ω)              Node.js :3000            D2→Shoulder L
-  D5→RGB G  (220Ω)              WebSocket               D3→Shoulder R
-  D6→RGB B  (220Ω)              Angular UI              D4→Elbow L
-  D4→Servo L (глазо)                                    D5→Elbow R
-  D7→Servo R (глазо)
-  D8→Servo J (челюсть)
-
-  ⚠️  НЕ питать сервоприводы от Arduino 5V!
-  ⚠️  GND Arduino и внешнего блока питания соединить вместе!
-```
-
-### Распиновка сервоприводов
-
-| Сервопривод | Пин | Направление | Центр |
-|-------------|-----|-------------|-------|
-| 👁️ Левый глаз | D4 | ↔ лево/право | 90° |
-| 👁️ Правый глаз | D7 | ↔ лево/право | 90° |
-| 🦷 Челюсть | D8 | ↕ открыть/закрыть | 90° (закрыта) |
-
-## Архитектура
+## 🏗️ Архитектура
 
 ![Robot Catty Architecture](diagram.png)
 
+### Общая схема
+
 ```
-┌─────────────┐     USB      ┌──────────────┐
-│             │──────────────│ Arduino Uno  │ Голова: 3 серво + RGB LED
-│  Raspberry  │              │ (CH340)      │  • Левый глаз (D4)
-│  Pi 3B      │              │              │  • Правый глаз (D7)
-│             │              │              │  • Челюсть (D8)
-│             │              └──────────────┘
-│             │     USB      ┌──────────────┐
-│  Node.js    │──────────────│ Arduino Mega │ Тело: 4 серво (+4 future)
-│  Server     │              │ 2560 R3      │
-│  :3000      │              └──────────────┘
-│             │
-│  Angular UI │◄── WebSocket ── Браузер
-└─────────────┘
+┌─────────────────┐     USB      ┌──────────────┐
+│                 │──────────────│ Arduino Uno  │ Голова: 3 серво + RGB LED
+│  Raspberry Pi   │              │ (CH340)      │  • Левый глаз (D4)
+│  Node.js :3000  │              │              │  • Правый глаз (D7)
+│                 │              │              │  • Челюсть (D8)
+│                 │              └──────────────┘
+│                 │     USB      ┌──────────────┐
+│                 │──────────────│ Arduino Mega │ Тело: 4 серво (+4 future)
+│                 │              │ 2560 R3      │  • Shoulder L/R (D2/D3)
+│                 │              │              │  • Elbow L/R (D4/D5)
+│                 │              └──────────────┘
+│                 │
+│  Angular UI ◄── WebSocket ── Браузер
+└─────────────────┘
 ```
 
-## Компоненты
+### Компоненты
 
 | Компонент | Роль | Подключение |
 |-----------|------|-------------|
@@ -114,28 +70,191 @@ Arduino Uno (Голова)  ←USB→  Raspberry Pi 3B  ←USB→  Arduino Mega 
 | Arduino Uno (CH340) | Голова: 3 серво + RGB LED | USB → /dev/ttyUSB0 |
 | Arduino Mega 2560 R3 | Тело: 4 серво | USB → /dev/ttyACM0 |
 | RGB LED (4-pin) | Индикация глаз | Uno D3/D5/D6 |
-| Сервоприводы (×7) | Движение | Uno D4,D7,D8 / Mega D2-D5 |
+| Сервоприводы (×7+) | Движение | Uno D4,D7,D8,D9-D11 / Mega D2-D9 |
 
-## Подключённые модули
+### Распиновка
 
-### Веб-интерфейс — панель «Модули»
+#### Arduino Uno (Голова)
 
-В UI есть отдельная панель «Подключённые модули», которая отображает все обнаруженные устройства на обеих Arduino платах:
+| Пин | Компонент | Описание |
+|-----|-----------|----------|
+| D3 | RGB R | Красный светодиод (через 220Ω) |
+| D5 | RGB G | Зелёный светодиод (через 220Ω) |
+| D6 | RGB B | Синий светодиод (через 220Ω) |
+| D4 | Servo | Левый глаз ↔ |
+| D7 | Servo | Правый глаз ↔ |
+| D8 | Servo | Челюсть (открыть/закрыть) |
+| D9 | Servo | Поворот головы ↔ |
+| D10 | Servo | Шея ↕ (наклон) |
+| D11 | Servo | Шея ↔ (поворот) |
+| GND | RGB GND | Общий провод |
 
-| Плата | Модуль | Пин | Тип | Отображаемое значение |
-|-------|--------|-----|-----|----------------------|
-| Arduino Uno | RGB LED | D3/D5/D6 | rgb | HEX цвет или OFF |
-| Arduino Uno | eyeL | D4 | servo | Угол (°) |
-| Arduino Uno | eyeR | D7 | servo | Угол (°) |
-| Arduino Uno | jaw | D8 | servo | Угол (°) |
-| Arduino Mega | shoulderL | D2 | servo | Угол (°) |
-| Arduino Mega | shoulderR | D3 | servo | Угол (°) |
-| Arduino Mega | elbowL | D4 | servo | Угол (°) |
-| Arduino Mega | elbowR | D5 | servo | Угол (°) |
+#### Arduino Mega 2560 (Тело)
 
-Статус каждой платы индицируется точкой: 🟢 Online / 🔴 Offline.
+| Пин | Компонент | Описание |
+|-----|-----------|----------|
+| D2 | Servo | Левое плечо |
+| D3 | Servo | Правое плечо |
+| D4 | Servo | Левый локоть |
+| D5 | Servo | Правый локоть |
+| D6-D9 | Servo | Резерв (future) |
 
-## Структура проекта
+> ⚠️ НЕ питать сервоприводы от Arduino 5V! Используйте отдельный блок 5-6V, минимум 2А на серво. GND всех источников соединить вместе.
+
+### Интерактивные схемы
+
+- 🔗 [Полная интерактивная схема](docs/robot-catty-circuit.html) — кликабельная SVG с подробными подписями
+- 📄 [Wiring документация](docs/wiring.md) — полное описание подключения
+
+---
+
+## ⚡ Подключение и питание
+
+### Схема подключения (превью)
+
+| Схема подключения | Проводка |
+|:---:|:---:|
+| ![Circuit Schematic](docs/images/circuit-schematic.png) | ![Wiring Diagram](docs/images/wiring-diagram.png) |
+
+### Питание
+
+⚠️ **ВАЖНО**: Сервоприводы НЕ питать от Arduino 5V!
+
+- **Arduino Uno/Mega**: питание от USB Raspberry Pi
+- **Сервоприводы (7шт)**: отдельный блок питания 5-6V, минимум 2А на каждый серво
+- **RGB LED**: питание от Arduino через резисторы 220Ω
+- **GND**: соединить GND всех источников питания вместе
+
+---
+
+## 💻 Управление и API
+
+### Serial протокол (9600 baud)
+
+#### Arduino Uno (Голова)
+
+| Команда | Описание | Пример |
+|---------|----------|--------|
+| `SERVO:<name>:<angle>` | Установить угол серво (0-180) | `SERVO:eyeL:120` |
+| `RGB:<r>,<g>,<b>` | Установить цвет (0-255) | `RGB:255,128,0` |
+| `OFF` | Выключить RGB | `OFF` |
+| `FADE:<r>,<g>,<b>` | Плавный переход к цвету | `FADE:0,0,255` |
+| `BLINK` | Режим мигания | `BLINK` |
+| `PRESET:<name>` | Готовый цвет | `PRESET:red` |
+| `STATUS` | Текущее состояние | `STATUS` |
+
+#### Arduino Mega (Тело)
+
+| Команда | Описание | Пример |
+|---------|----------|--------|
+| `SERVO:<name>:<angle>` | Установить угол серво (0-180) | `SERVO:shoulderL:120` |
+| `CENTER` | Центрировать все серво | `CENTER` |
+| `STATUS` | Текущее состояние | `STATUS` |
+
+#### Пресеты цветов
+
+`red`, `green`, `blue`, `white`, `yellow`, `cyan`, `magenta`, `orange`, `pink`, `purple`
+
+### REST API
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/api/status` | Статус подключения + состояние |
+| POST | `/api/servo` | `{board, servo, angle}` |
+| POST | `/api/rgb` | `{r, g, b}` |
+| POST | `/api/rgb/off` | Выключить RGB |
+| POST | `/api/rgb/preset` | `{name}` |
+| POST | `/api/animation` | `{name, params}` |
+| POST | `/api/animation/stop` | Остановить анимацию |
+
+### WebSocket
+
+Подключение: `ws://<pi-ip>:3000`
+
+```json
+{"type": "servo", "board": "head", "servo": "eyeL", "angle": 120}
+{"type": "rgb", "r": 255, "g": 0, "b": 0}
+{"type": "preset", "name": "red"}
+{"type": "animation", "name": "wave"}
+{"type": "stop"}
+```
+
+### Веб-интерфейс
+
+```bash
+cd ~/robot-catty/server
+npm start
+# Открыть http://<pi-ip>:3000
+```
+
+Возможности UI:
+- 🎛️ Управление серво — слайдеры для всех серво
+- 💡 RGB LED — слайдеры R/G/B + 10 пресетов + кнопка выключения
+- 🎬 Анимации: `wave`, `nod`, `shake`, `dance`, `lookAround`, `blink`
+- 📊 Статус в реальном времени — WebSocket
+- 📋 Лог — все команды и события
+
+### Telegram бот
+
+Управление RGB LED через Telegram.
+
+**Команды:** `/red`, `/green`, `/blue`, `/white`, `/yellow`, `/cyan`, `/magenta`, `/orange`, `/pink`, `/purple`, `/off`, `/status`, `/blink`, `/color R G B`, `/demo`, `/stop`
+
+> ⚠️ Токен бота нужно запросить у @BotFather и вставить в `scripts/rgb_bot.py`
+
+---
+
+## 🚀 Установка и запуск
+
+### Raspberry Pi
+
+```bash
+# Клонирование
+git clone https://github.com/RuslanStrogov/robot-catty.git
+cd robot-catty
+
+# Установка Node.js зависимостей
+cd server
+npm install
+
+# Запуск
+npm start
+
+# Автозапуск (crontab)
+crontab -e
+# Добавить:
+# @reboot cd /path/to/robot-catty/server && /usr/bin/node server.js
+```
+
+### Загрузка скетчей
+
+```bash
+# Arduino Uno (голова — 3 серво + RGB)
+avr-gcc -mmcu=atmega328p -DF_CPU=16000000L \
+  -DARDUINO=10607 -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR \
+  -I$CORE -I$VAR \
+  -Os -w -std=gnu++11 -fpermissive -fno-exceptions \
+  -ffunction-sections -fdata-sections -fno-threadsafe-statics -flto \
+  $CORE/*.cpp $CORE/*.c \
+  firmware/servo_head/servo_head.cpp -o servo_head.elf -lm
+
+avrdude -c arduino -p m328p -P /dev/ttyUSB0 -b 115200 -D -U flash:w:servo_head.hex:i
+
+# Arduino Mega (тело)
+arduino-cli compile -b arduino:avr:mega firmware/servo_body/
+arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 firmware/servo_body/
+```
+
+### Демо режим
+
+Автоматический запуск при старте системы (crontab `@reboot`):
+
+1. 🔴 Моргание красным — 1 минута
+2. Каждый пресет — 3 минуты с плавным переходом
+
+---
+
+## 📁 Структура проекта
 
 ```
 robot-catty/
@@ -155,7 +274,9 @@ robot-catty/
 │   └── servo_config.json            # Конфигурация серво (пины, лимиты)
 ├── docs/
 │   ├── wiring.md                    # Схема подключения (полная)
-│   └── wiring-3servo.md             # Схема 3 серво + RGB
+│   ├── interactive-schematics.md    # Описание интерактивных схем
+│   ├── robot-catty-circuit.html     # Интерактивная SVG
+│   └── images/                      # Фото и схемы
 ├── scripts/
 │   ├── rgb_bot.py                   # Telegram бот управления RGB
 │   └── demo.py                      # Демо-режим (автозапуск)
@@ -166,230 +287,9 @@ robot-catty/
 └── README.md                        # Этот файл
 ```
 
-## Сервоприводы
+---
 
-### Голова (Arduino Uno)
-
-| Серво | Пин | Описание |
-|-------|-----|----------|
-| eyeL | D4 | Левый глаз |
-| eyeR | D7 | Правый глаз |
-| jaw | D8 | Челюсть |
-
-### Тело (Arduino Mega 2560)
-
-| Серво | Пин | Описание |
-|-------|-----|----------|
-| shoulderL | D2 | Левое плечо |
-| shoulderR | D3 | Правое плечо |
-| elbowL | D4 | Левый локоть |
-| elbowR | D5 | Правый локоть |
-
-### Будущее расширение (Mega)
-
-| Серво | Пин | Описание |
-|-------|-----|----------|
-| shoulderL2 | D6 | Левое плечо 2 |
-| shoulderR2 | D7 | Правое плечо 2 |
-| elbowL2 | D8 | Левый локоть 2 |
-| elbowR2 | D9 | Правый локоть 2 |
-
-## RGB LED
-
-4-pin RGB LED (общий катод):
-
-| Цвет | Пин | Резистор |
-|------|-----|----------|
-| Red | D3 (PWM) | 220Ω |
-| Green | D5 (PWM) | 220Ω |
-| Blue | D6 (PWM) | 220Ω |
-| GND | GND | — |
-
-## Serial протокол (9600 baud)
-
-### Arduino Uno (Голова)
-
-| Команда | Описание | Пример |
-|---------|----------|--------|
-| `SERVO:<name>:<angle>` | Установить угол серво (0-180) | `SERVO:headRot:120` |
-| `RGB:<r>,<g>,<b>` | Установить цвет (0-255) | `RGB:255,128,0` |
-| `OFF` | Выключить RGB | `OFF` |
-| `FADE:<r>,<g>,<b>` | Плавный переход к цвету | `FADE:0,0,255` |
-| `BLINK` | Режим мигания | `BLINK` |
-| `PRESET:<name>` | Готовый цвет | `PRESET:red` |
-| `STATUS` | Текущее состояние | `STATUS` |
-
-### Arduino Mega (Тело)
-
-| Команда | Описание | Пример |
-|---------|----------|--------|
-| `SERVO:<name>:<angle>` | Установить угол серво (0-180) | `SERVO:shoulderL:120` |
-| `CENTER` | Центрировать все серво | `CENTER` |
-| `STATUS` | Текущее состояние | `STATUS` |
-
-### Пресеты цветов
-
-`red`, `green`, `blue`, `white`, `yellow`, `cyan`, `magenta`, `orange`, `pink`, `purple`
-
-## Ручное управление
-
-### Через Serial (9600 baud)
-
-Подключитесь к Arduino Uno через USB и отправляйте команды:
-
-```bash
-# Левый глаз — смотреть влево/право
-SERVO:eyeL:45    # влево
-SERVO:eyeL:90   # центр
-SERVO:eyeL:135  # вправо
-
-# Правый глаз
-SERVO:eyeR:45
-SERVO:eyeR:90
-SERVO:eyeR:135
-
-# Челюсть
-SERVO:jaw:90    # закрыта
-SERVO:jaw:45    # открыта
-SERVO:jaw:135   # широко открыта
-
-# RGB LED
-RGB:255,0,0     # красный
-RGB:0,255,0     # зелёный
-RGB:0,0,255     # синий
-RGB:255,255,255 # белый
-OFF             # выключить
-PRESET:red      # пресет красного
-BLINK           # мигание
-
-# Управление
-HOME            # все серво в центр (90°)
-STATUS          # текущее состояние
-```
-
-### Через веб-интерфейс
-
-```bash
-cd ~/robot-catty/server
-npm start
-# Открыть http://<pi-ip>:3000
-```
-
-### Через Telegram бот
-
-Управление RGB LED через Telegram:
-`/red`, `/green`, `/blue`, `/white`, `/off`, `/blink`, `/status`
-
-### Возможности UI
-
-- 🎛️ **Управление серво** — слайдеры для 7 серво (3 голова + 4 тело)
-- 💡 **RGB LED** — слайдеры R/G/B + 10 пресетов + кнопка выключения
-- 🎬 **Анимации:**
-  - `wave` — махать рукой
-  - `nod` — кивать головой
-  - `shake` — мотать головой
-  - `dance` — танцевать
-  - `lookAround` — оглядываться
-  - `blink` — мигание RGB
-- 📊 **Статус в реальном времени** — WebSocket
-- 📋 **Лог** — все команды и события
-
-## API
-
-### REST endpoints
-
-| Метод | Путь | Описание |
-|-------|------|----------|
-| GET | `/api/status` | Статус подключения + состояние |
-| POST | `/api/servo` | `{board, servo, angle}` |
-| POST | `/api/rgb` | `{r, g, b}` |
-| POST | `/api/rgb/off` | Выключить RGB |
-| POST | `/api/rgb/preset` | `{name}` |
-| POST | `/api/animation` | `{name, params}` |
-| POST | `/api/animation/stop` | Остановить анимацию |
-
-### WebSocket
-
-Подключение: `ws://<pi-ip>:3000`
-
-Отправка команд:
-```json
-{"type": "servo", "board": "head", "servo": "headRot", "angle": 120}
-{"type": "rgb", "r": 255, "g": 0, "b": 0}
-{"type": "preset", "name": "red"}
-{"type": "animation", "name": "wave"}
-{"type": "stop"}
-```
-
-Получение состояния:
-```json
-{"type": "state", "data": {"servos": {...}, "rgb": {...}, "animation": null}}
-```
-
-## Демо режим
-
-Автоматический запуск при старте системы (crontab `@reboot`):
-
-1. 🔴 Моргание красным — 1 минута
-2. Каждый пресет — 3 минуты с плавным переходом
-
-## Telegram бот
-
-Управление RGB LED через Telegram.
-
-**Команды:** `/red`, `/green`, `/blue`, `/white`, `/yellow`, `/cyan`, `/magenta`, `/orange`, `/pink`, `/purple`, `/off`, `/status`, `/blink`, `/color R G B`, `/demo`, `/stop`
-
-> ⚠️ Токен бота нужно запросить у @BotFather и вставить в `scripts/rgb_bot.py`
-
-## Установка на Raspberry Pi
-
-```bash
-# Клонирование
-git clone https://github.com/RuslanStrogov/robot-catty.git
-cd robot-katty
-
-# Установка Node.js зависимостей
-cd server
-npm install
-
-# Запуск
-npm start
-
-# Автозапуск (crontab)
-crontab -e
-# Добавить:
-# @reboot cd /path/to/robot-catty/server && /usr/bin/node server.js
-```
-
-## Загрузка скетчей
-
-```bash
-# Arduino Uno (голова — 3 серво + RGB)
-avr-gcc -mmcu=atmega328p -DF_CPU=16000000L \
-  -DARDUINO=10607 -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR \
-  -I$CORE -I$VAR \
-  -Os -w -std=gnu++11 -fpermissive -fno-exceptions \
-  -ffunction-sections -fdata-sections -fno-threadsafe-statics -flto \
-  $CORE/*.cpp $CORE/*.c \
-  firmware/servo_head/servo_head.cpp -o servo_head.elf -lm
-
-avrdude -c arduino -p m328p -P /dev/ttyUSB0 -b 115200 -D -U flash:w:servo_head.hex:i
-
-# Arduino Mega (тело)
-arduino-cli compile -b arduino:avr:mega firmware/servo_body/
-arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 firmware/servo_body/
-```
-
-## Питание
-
-⚠️ **ВАЖНО**: Сервоприводы НЕ питать от Arduino 5V!
-
-- **Arduino Uno/Mega**: питание от USB Raspberry Pi
-- **Сервоприводы**: отдельный блок питания 5-6V, минимум 2А на каждый серво
-- **RGB LED**: питание от Arduino через резисторы 220Ω
-- **GND**: соединить GND всех источников питания вместе
-
-## Известные проблемы
+## ⚠️ Известные проблемы
 
 - Arduino Uno CH340: все фюзы = 0x00 (125kHz клок), но serial работает на 9600 baud
 - Для компиляции на Pi нужен Arduino IDE или PlatformIO (версия atmelavr ≤5.3.0 для корректной работы с Mega 2560)
@@ -398,6 +298,8 @@ arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 firmware/servo_body/
 
 Подробнее в [ISSUES.md](ISSUES.md)
 
+---
+
 ## 📸 Галерея
 
 <div align="center">
@@ -405,11 +307,7 @@ arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 firmware/servo_body/
 ![Photo 5](docs/images/photo_5.jpg)
 ![Photo 7](docs/images/photo_7.jpg)
 
-</div>
-
-## 🎨 Фан-арты прототипов интерфейса
-
-<div align="center">
+### Прототипы интерфейса
 
 | Прототип 1 | Прототип 2 | Прототип 3 |
 |:---:|:---:|:---:|
@@ -417,7 +315,9 @@ arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 firmware/servo_body/
 
 </div>
 
-## 📝 Блог по разработке
+---
+
+## 📝 Блог и лицензия
 
 - **Telegram**: [http://t.me/itvpi](http://t.me/itvpi)
 - **VK**: [https://vk.com/itvpiska](https://vk.com/itvpiska)
