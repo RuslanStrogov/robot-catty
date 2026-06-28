@@ -3,6 +3,13 @@ const http = require('http');
 const { WebSocketServer } = require('ws');
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
+const swaggerUi = require('swagger-ui-express');
+const fs = require('fs');
+const path = require('path');
+const yaml = require('js-yaml');
+
+// Load swagger spec
+const swaggerSpec = yaml.load(fs.readFileSync(path.join(__dirname, 'swagger.yaml'), 'utf8'));
 
 const app = express();
 const server = http.createServer(app);
@@ -232,6 +239,13 @@ function broadcastState() {
 // ========== REST API ==========
 app.use(express.json());
 app.use(express.static('public'));
+
+// Swagger UI
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Robot Catty API Docs'
+}));
+app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 
 app.get('/api/status', (req, res) => {
     res.json({ connections: state.connections, data: state });
