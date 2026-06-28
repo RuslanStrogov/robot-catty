@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![Photo 8](docs/images/photo_8.jpg)
-
 ```
   ╔═══════════════════════════════════════════════════════════╗
   ║  ██████╗  ██████╗ ██████╗  ██████╗ ████████╗           ║
@@ -395,6 +393,11 @@ arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 firmware/servo_body/
 ![Photo 7](docs/images/photo_7.jpg)
 
 </div>
+
+## 📝 Блог по разработке
+
+- **Telegram**: [http://t.me/itvpi](http://t.me/itvpi)
+- **VK**: [https://vk.com/itvpiska](https://vk.com/itvpiska)
 
 ## Лицензия
 
