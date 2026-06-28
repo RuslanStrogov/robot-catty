@@ -1,0 +1,18 @@
+[Unit]
+Description=Robot Catty Node.js Server
+After=network.target
+
+[Service]
+Type=simple
+User=ruslan
+WorkingDirectory=/home/ruslan/robot-catty/server
+ExecStart=/home/ruslan/.nvm/versions/node/v20.20.2/bin/node server.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=WEB_PORT=3000
+Environment=UNO_PORT=/dev/ttyUSB0
+Environment=MEGA_PORT=/dev/ttyACM0
+
+[Install]
+WantedBy=default.target

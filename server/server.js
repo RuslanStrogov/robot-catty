@@ -53,9 +53,10 @@ function initSerial() {
             }
         });
 
-        unaParser.on('data', (line) => {
+        unoParser.on('data', (line) => {
             line = line.trim();
             if (!line) return;
+            addLog('serial', `[UNO] ${line}`);
             console.log('[UNO] ←', line);
             parseResponse('uno', line);
         });
@@ -88,6 +89,7 @@ function initSerial() {
         megaParser.on('data', (line) => {
             line = line.trim();
             if (!line) return;
+            addLog('serial', `[MEGA] ${line}`);
             console.log('[MEGA] ←', line);
             parseResponse('mega', line);
         });
@@ -180,8 +182,16 @@ function handleWSMessage(ws, req) {
         case 'cmd':
             if (req.data === 'HOME' || req.data === 'STATUS') {
                 sendToBoard('uno', req.data);
-            } else if (req.data === 'CENTER' || req.data === 'STATUS') {
+            } else if (req.data === 'CENTER') {
                 sendToBoard('mega', req.data);
+            } else if (req.data === 'SERVER_STATUS') {
+                ws.send(JSON.stringify({ type: 'server_status', data: {
+                    uptime: process.uptime(),
+                    memory: process.memoryUsage(),
+                    connections: state.connections,
+                    serialPorts: { uno: unoPort ? unoPort.isOpen : false, mega: megaPort ? megaPort.isOpen : false },
+                    logEntries: { serial: logBuffer.serial.length, server: logBuffer.server.length }
+                }}));
             } else {
                 sendToBoard('uno', req.data);
             }
@@ -292,11 +302,57 @@ app.post('/api/animation/stop', (req, res) => {
     res.json({ ok: true });
 });
 
+// ========== LOG BUFFER ==========
+const logBuffer = { serial: [], server: [] };
+const MAX_LOG_ENTRIES = 200;
+
+function addLog(category, line) {
+    const entry = { time: new Date().toISOString(), line: line };
+    if (!logBuffer[category]) logBuffer[category] = [];
+    logBuffer[category].push(entry);
+    if (logBuffer[category].length > MAX_LOG_ENTRIES) {
+        logBuffer[category] = logBuffer[category].slice(-MAX_LOG_ENTRIES);
+    }
+}
+
+// Wrap console.log to capture server logs
+const origLog = console.log;
+console.log = function(...args) {
+    origLog.apply(console, args);
+    addLog('server', args.join(' '));
+};
+
+// ========== LOG API ==========
+app.get('/api/logs', (req, res) => {
+    res.json({
+        serial: logBuffer.serial.slice(-50).map(e => `${new Date(e.time).toLocaleTimeString()} ${e.line}`),
+        server: logBuffer.server.slice(-50).map(e => `${new Date(e.time).toLocaleTimeString()} ${e.line}`)
+    });
+});
+
+app.get('/api/server/status', (req, res) => {
+    res.json({
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        connections: state.connections,
+        serialPorts: {
+            uno: unoPort ? unoPort.isOpen : false,
+            mega: megaPort ? megaPort.isOpen : false
+        },
+        logEntries: {
+            serial: logBuffer.serial.length,
+            server: logBuffer.server.length
+        }
+    });
+});
+
 // ========== START ==========
 server.listen(WEB_PORT, '0.0.0.0', () => {
     console.log(`\n🤖 Robot Catty Server running on http://0.0.0.0:${WEB_PORT}`);
     console.log(`   WebSocket: ws://0.0.0.0:${WEB_PORT}/ws`);
-    console.log(`   Uno: ${UNO_PORT} | Mega: ${MEGA_PORT}\n`);
+    console.log(`   Uno: ${UNO_PORT} | Mega: ${MEGA_PORT}`);
+    console.log(`   Logs API: http://0.0.0.0:${WEB_PORT}/api/logs`);
+    console.log(`   Server Status: http://0.0.0.0:${WEB_PORT}/api/server/status\n`);
     initSerial();
 });
 
