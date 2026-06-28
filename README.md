@@ -2,6 +2,8 @@
 
 <div align="center">
 
+![Photo 8](docs/images/photo_8.jpg)
+
 ```
   ╔═══════════════════════════════════════════════════════════╗
   ║  ██████╗  ██████╗ ██████╗  ██████╗ ████████╗           ║
@@ -389,11 +391,8 @@ arduino-cli upload -b arduino:avr:mega -p /dev/ttyACM0 firmware/servo_body/
 
 <div align="center">
 
-|  |  |  |
-|:---:|:---:|:---:|
-| ![Photo 1](docs/images/photo_1.jpg) | ![Photo 2](docs/images/photo_2.jpg) | ![Photo 3](docs/images/photo_3.jpg) |
-| ![Photo 4](docs/images/photo_4.jpg) | ![Photo 5](docs/images/photo_5.jpg) | ![Photo 6](docs/images/photo_6.jpg) |
-| ![Photo 7](docs/images/photo_7.jpg) | ![Photo 8](docs/images/photo_8.jpg) | |
+![Photo 5](docs/images/photo_5.jpg)
+![Photo 7](docs/images/photo_7.jpg)
 
 </div>
 
