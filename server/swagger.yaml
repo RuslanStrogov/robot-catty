@@ -1,0 +1,190 @@
+openapi: 3.0.0
+info:
+  title: Robot Catty API
+  description: REST API для управления роботом Robot Catty (Raspberry Pi + Arduino Uno/Mega)
+  version: 1.0.0
+  contact:
+    name: Ruslan Strogov
+    url: https://github.com/RuslanStrogov/robot-catty
+
+servers:
+  - url: http://catty.strogov.com
+    description: Production
+  - url: http://localhost:3000
+    description: Local
+
+tags:
+  - name: Status
+    description: Статус и состояние системы
+  - name: Servo
+    description: Управление сервоприводами
+  - name: RGB
+    description: Установка RGB LED подсветки
+  - name: Animation
+    description: Анимации робота
+
+paths:
+  /api/status:
+    get:
+      tags: [Status]
+      summary: Получить текущий статус
+      description: Возвращает состояние подключений и текущие позиции серво и RGB
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connections:
+                    type: object
+                    properties:
+                      uno: { type: boolean, description: "Arduino Uno connected" }
+                      mega: { type: boolean, description: "Arduino Mega connected" }
+                  data:
+                    type: object
+                    properties:
+                      servos:
+                        type: object
+                        properties:
+                          eyeL: { type: integer, example: 90 }
+                          eyeR: { type: integer, example: 90 }
+                          jaw: { type: integer, example: 90 }
+                          shoulderL: { type: integer, example: 90 }
+                          shoulderR: { type: integer, example: 90 }
+                          elbowL: { type: integer, example: 90 }
+                          elbowR: { type: integer, example: 90 }
+                      rgb:
+                        type: object
+                        properties:
+                          r: { type: integer, example: 255 }
+                          g: { type: integer, example: 0 }
+                          b: { type: integer, example: 0 }
+                      animation:
+                        type: string
+                        nullable: true
+
+  /api/servo:
+    post:
+      tags: [Servo]
+      summary: Установить угол сервопривода
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [servo, angle]
+              properties:
+                board:
+                  type: string
+                  enum: [uno, mega]
+                  description: "Плата (auto-detect по servo name)"
+                servo:
+                  type: string
+                  enum: [eyeL, eyeR, jaw, shoulderL, shoulderR, elbowL, elbowR]
+                  description: Имя сервопривода
+                angle:
+                  type: integer
+                  minimum: 0
+                  maximum: 180
+                  description: Угол (0-180°)
+      responses:
+        '200':
+          description: Успешно
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+        '400':
+          description: Неправильный запрос
+
+  /api/rgb:
+    post:
+      tags: [RGB]
+      summary: Установить цвет RGB LED
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [r, g, b]
+              properties:
+                r:
+                  type: integer
+                  minimum: 0
+                  maximum: 255
+                g:
+                  type: integer
+                  minimum: 0
+                  maximum: 255
+                b:
+                  type: integer
+                  minimum: 0
+                  maximum: 255
+      responses:
+        '200':
+          description: Успешно
+
+  /api/rgb/off:
+    post:
+      tags: [RGB]
+      summary: Выключить RGB LED
+      responses:
+        '200':
+          description: Успешно
+
+  /api/rgb/preset:
+    post:
+      tags: [RGB]
+      summary: Установить пресет цвета
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  enum: [red, green, blue, white, yellow, cyan, magenta, orange, pink, purple]
+                  description: Имя пресета
+      responses:
+        '200':
+          description: Успешно
+
+  /api/animation:
+    post:
+      tags: [Animation]
+      summary: Запустить анимацию
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  enum: [wave, nod, shake, blink, lookAround, dance]
+                  description: Тип анимации
+                params:
+                  type: object
+                  description: "Дополнительные параметры анимации"
+      responses:
+        '200':
+          description: Анимация запущена
+
+  /api/animation/stop:
+    post:
+      tags: [Animation]
+      summary: Остановить текущую анимацию
+      responses:
+        '200':
+          description: Анимация остановлена
