@@ -2,7 +2,14 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#58a6ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="description" content="Панель ручного управления роботом Catty — сервоприводы, RGB LED, WebSocket">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <title>Robot Catty — Управление</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,39 +20,25 @@
             min-height: 100vh;
             padding: 20px;
         }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 800px; margin: 0 auto; }
         h1 {
             text-align: center;
             color: #58a6ff;
             font-size: 1.8em;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
         .subtitle {
             text-align: center;
             color: #8b949e;
-            margin-bottom: 16px;
-            font-size: 0.85em;
-        }
-        .panel {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-        }
-        .panel h2 {
-            color: #58a6ff;
-            font-size: 1.05em;
-            margin-bottom: 14px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid #21262d;
+            margin-bottom: 24px;
+            font-size: 0.9em;
         }
         .status-bar {
             display: flex;
             justify-content: center;
             gap: 20px;
-            margin-bottom: 16px;
-            padding: 10px;
+            margin-bottom: 24px;
+            padding: 12px;
             background: #161b22;
             border-radius: 8px;
             border: 1px solid #30363d;
@@ -54,7 +47,6 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 0.85em;
         }
         .status-dot {
             width: 10px;
@@ -63,14 +55,75 @@
             background: #f85149;
         }
         .status-dot.online { background: #3fb950; }
+        .panel {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .panel h2 {
+            color: #58a6ff;
+            font-size: 1.1em;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #21262d;
+        }
+        .servo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        .servo-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .servo-card h3 {
+            color: #f0f6fc;
+            font-size: 0.95em;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .servo-value {
+            color: #58a6ff;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #21262d;
+            border-radius: 3px;
+            outline: none;
+            margin: 8px 0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #58a6ff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .servo-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75em;
+            color: #8b949e;
+        }
         .btn {
-            padding: 7px 14px;
+            padding: 8px 16px;
             border: 1px solid #30363d;
             border-radius: 6px;
             background: #21262d;
             color: #c9d1d9;
             cursor: pointer;
-            font-size: 0.82em;
+            font-size: 0.85em;
             transition: all 0.2s;
         }
         .btn:hover { background: #30363d; border-color: #8b949e; }
@@ -78,101 +131,30 @@
         .btn-primary:hover { background: #2ea043; }
         .btn-danger { background: #da3633; border-color: #f85149; color: #fff; }
         .btn-danger:hover { background: #f85149; }
-        .btn-group { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-        .connection-form {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .connection-form input {
-            flex: 1;
-            min-width: 120px;
-            padding: 7px 10px;
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #c9d1d9;
-            font-size: 0.85em;
-        }
-        .connection-form input:focus {
-            outline: none;
-            border-color: #58a6ff;
-        }
-        .rgb-block {
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        .rgb-controls {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 16px;
-        }
-        @media (max-width: 600px) {
-            .rgb-block { grid-template-columns: 1fr; }
-        }
-        .color-preview-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
+            margin-bottom: 16px;
         }
         .color-preview {
             width: 100%;
-            height: 80px;
+            height: 60px;
             border-radius: 8px;
             background: #000;
-            border: 2px solid #30363d;
-            transition: background 0.3s;
-        }
-        .current-color-info {
-            font-size: 0.85em;
-            color: #8b949e;
-            text-align: center;
-        }
-        .current-color-info span {
-            color: #f0f6fc;
-            font-weight: bold;
-            font-family: 'Consolas', monospace;
-        }
-        .slider-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-        .slider-row label {
-            min-width: 55px;
-            font-size: 0.82em;
-        }
-        .slider-row input[type="range"] {
-            flex: 1;
-            height: 6px;
-            -webkit-appearance: none;
-            background: #21262d;
-            border-radius: 3px;
-            outline: none;
-        }
-        .slider-row input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #58a6ff;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        .slider-row .val {
-            min-width: 30px;
-            text-align: right;
-            font-family: 'Consolas', monospace;
-            font-size: 0.82em;
-            color: #58a6ff;
+            border: 1px solid #30363d;
+            margin-bottom: 12px;
         }
         .presets {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 8px;
+            gap: 8px;
+            margin-top: 12px;
         }
         .preset-btn {
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             border: 2px solid #30363d;
             cursor: pointer;
@@ -182,110 +164,47 @@
             transform: scale(1.15);
             border-color: #f0f6fc;
         }
-        .servo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-        }
-        .servo-card {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 14px;
-        }
-        .servo-card h3 {
-            color: #f0f6fc;
-            font-size: 0.88em;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .servo-value {
-            color: #58a6ff;
-            font-weight: bold;
-            font-size: 1.05em;
-        }
-        .servo-card input[type="range"] {
-            width: 100%;
-            height: 5px;
-            -webkit-appearance: none;
-            background: #21262d;
-            border-radius: 3px;
-            outline: none;
-            margin: 6px 0;
-        }
-        .servo-card input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #58a6ff;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        .servo-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.7em;
-            color: #8b949e;
-        }
-        .debug-block {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-        @media (max-width: 600px) {
-            .debug-block { grid-template-columns: 1fr; }
-        }
         .log-panel {
             background: #0d1117;
             border: 1px solid #30363d;
             border-radius: 8px;
-            padding: 10px;
-            max-height: 250px;
+            padding: 12px;
+            max-height: 200px;
             overflow-y: auto;
             font-family: 'Consolas', 'Courier New', monospace;
-            font-size: 0.75em;
-            line-height: 1.5;
+            font-size: 0.8em;
+            line-height: 1.6;
         }
-        .log-panel::-webkit-scrollbar { width: 6px; }
-        .log-panel::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
-        .log-entry { color: #8b949e; word-break: break-all; }
+        .log-entry { color: #8b949e; }
         .log-entry.ok { color: #3fb950; }
         .log-entry.err { color: #f85149; }
         .log-entry.cmd { color: #d2a8ff; }
-        .log-entry.info { color: #79c0ff; }
-        .log-header {
+        .connection-form {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-        .log-header span { font-size: 0.9em; color: #8b949e; }
-        .log-clear { font-size: 0.75em; padding: 3px 8px; }
-        .blink-controls {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin-top: 8px;
+            gap: 12px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
         }
-        .blink-controls label { font-size: 0.82em; color: #8b949e; }
-        .blink-controls input[type="number"] {
-            width: 60px;
-            padding: 4px 6px;
+        .connection-form input {
+            flex: 1;
+            min-width: 120px;
+            padding: 8px 12px;
             background: #0d1117;
             border: 1px solid #30363d;
-            border-radius: 4px;
+            border-radius: 6px;
             color: #c9d1d9;
-            font-size: 0.82em;
+            font-size: 0.9em;
+        }
+        .connection-form input:focus {
+            outline: none;
+            border-color: #58a6ff;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🤖 Robot Catty</h1>
-        <p class="subtitle">Панель управления — Arduino Uno (голова) + Mega (тело)</p>
+        <p class="subtitle">Панель ручного управления</p>
 
         <div class="status-bar">
             <div class="status-item">
@@ -301,196 +220,135 @@
             </div>
         </div>
 
+        <!-- Connection -->
         <div class="panel">
             <h2>🔗 Подключение</h2>
             <div class="connection-form">
-                <input type="text" id="piIp" placeholder="IP Raspberry Pi" value="192.168.10.152">
+                <input type="text" id="piIp" placeholder="IP Raspberry Pi (напр. 192.168.10.152)" value="192.168.10.152">
                 <input type="text" id="wsPort" placeholder="Порт" value="3000">
                 <button class="btn btn-primary" onclick="connect()">Подключиться</button>
                 <button class="btn" onclick="disconnect()">Отключиться</button>
             </div>
         </div>
 
+        <!-- Head Servos -->
         <div class="panel">
-            <h2>💡 RGB LED (Arduino Uno)</h2>
-            <div class="rgb-block">
-                <div>
-                    <div class="color-preview-wrap">
-                        <div class="color-preview" id="colorPreview"></div>
-                        <div class="current-color-info">
-                            👀 Текущий цвет: <span id="currentColorHex">#000000</span>
-                            &nbsp;|&nbsp; RGB(<span id="currentR">0</span>, <span id="currentG">0</span>, <span id="currentB">0</span>)
-                        </div>
-                    </div>
-                    <div class="slider-row">
-                        <label style="color:#f85149">🔴 R:</label>
-                        <input type="range" id="rgbR" min="0" max="255" value="0" oninput="updateRGB()">
-                        <span class="val" id="r-val">0</span>
-                    </div>
-                    <div class="slider-row">
-                        <label style="color:#3fb950">🟢 G:</label>
-                        <input type="range" id="rgbG" min="0" max="255" value="0" oninput="updateRGB()">
-                        <span class="val" id="g-val">0</span>
-                    </div>
-                    <div class="slider-row">
-                        <label style="color:#58a6ff">🔵 B:</label>
-                        <input type="range" id="rgbB" min="0" max="255" value="0" oninput="updateRGB()">
-                        <span class="val" id="b-val">0</span>
-                    </div>
-                    <div class="btn-group">
-                        <button class="btn btn-primary" onclick="sendRGB()">Применить</button>
-                        <button class="btn btn-danger" onclick="sendOff()">⬛ Выключить</button>
-                    </div>
-                    <div class="blink-controls">
-                        <label>✨ Моргание:</label>
-                        <button class="btn" onclick="startBlink()">Вкл</button>
-                        <button class="btn" onclick="stopBlink()">Выкл</button>
-                        <label>Интервал:</label>
-                        <input type="number" id="blinkInterval" value="500" min="100" max="2000" step="100">
-                        <span style="font-size:0.75em;color:#8b949e">мс</span>
-                    </div>
-                </div>
-                <div>
-                    <h3 style="font-size:0.85em;color:#8b949e;margin-bottom:8px;">🎨 Пресеты</h3>
-                    <div class="presets">
-                        <div class="preset-btn" style="background:#ff0000" onclick="setRGB(255,0,0)" title="red"></div>
-                        <div class="preset-btn" style="background:#00ff00" onclick="setRGB(0,255,0)" title="green"></div>
-                        <div class="preset-btn" style="background:#0000ff" onclick="setRGB(0,0,255)" title="blue"></div>
-                        <div class="preset-btn" style="background:#ffffff" onclick="setRGB(255,255,255)" title="white"></div>
-                        <div class="preset-btn" style="background:#ffff00" onclick="setRGB(255,255,0)" title="yellow"></div>
-                        <div class="preset-btn" style="background:#00ffff" onclick="setRGB(0,255,255)" title="cyan"></div>
-                        <div class="preset-btn" style="background:#ff00ff" onclick="setRGB(255,0,255)" title="magenta"></div>
-                        <div class="preset-btn" style="background:#ffa500" onclick="setRGB(255,165,0)" title="orange"></div>
-                        <div class="preset-btn" style="background:#ffc0cb" onclick="setRGB(255,192,203)" title="pink"></div>
-                        <div class="preset-btn" style="background:#800080" onclick="setRGB(128,0,128)" title="purple"></div>
-                        <div class="preset-btn" style="background:#ff4500" onclick="setRGB(255,69,0)" title="orangered"></div>
-                        <div class="preset-btn" style="background:#2e8b57" onclick="setRGB(46,139,87)" title="seagreen"></div>
-                        <div class="preset-btn" style="background:#4169e1" onclick="setRGB(65,105,225)" title="royalblue"></div>
-                        <div class="preset-btn" style="background:#ffd700" onclick="setRGB(255,215,0)" title="gold"></div>
-                        <div class="preset-btn" style="background:#8b4513" onclick="setRGB(139,69,19)" title="saddlebrown"></div>
-                    </div>
-                    <h3 style="font-size:0.85em;color:#8b949e;margin:12px 0 6px;">🌈 Быстрые режимы</h3>
-                    <div class="btn-group">
-                        <button class="btn" onclick="sendPreset('red')">🔴 Red</button>
-                        <button class="btn" onclick="sendPreset('green')">🟢 Green</button>
-                        <button class="btn" onclick="sendPreset('blue')">🔵 Blue</button>
-                        <button class="btn" onclick="sendPreset('white')">⚪ White</button>
-                        <button class="btn" onclick="sendPreset('warm')">🟡 Warm</button>
-                        <button class="btn" onclick="sendPreset('purple')">🟣 Purple</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="panel">
-            <h2>👁️ Сервоприводы головы (Arduino Uno)</h2>
+            <h2>👁️ Голова (Arduino Uno)</h2>
             <div class="servo-grid">
                 <div class="servo-card">
                     <h3>👁️ Левый глаз <span class="servo-value" id="eyeL-val">90°</span></h3>
-                    <input type="range" id="eyeL" min="45" max="135" value="90" oninput="updateServo('eyeL', this.value)">
-                    <div class="servo-labels"><span>45° влево</span><span>90° прямо</span><span>135° вправо</span></div>
+                    <input type="range" id="eyeL" min="0" max="180" value="90" oninput="updateServo('eyeL', this.value)">
+                    <div class="servo-labels"><span>0° влево</span><span>90° центр</span><span>180° вправо</span></div>
                 </div>
                 <div class="servo-card">
                     <h3>👁️ Правый глаз <span class="servo-value" id="eyeR-val">90°</span></h3>
-                    <input type="range" id="eyeR" min="45" max="135" value="90" oninput="updateServo('eyeR', this.value)">
-                    <div class="servo-labels"><span>45° влево</span><span>90° прямо</span><span>135° вправо</span></div>
+                    <input type="range" id="eyeR" min="0" max="180" value="90" oninput="updateServo('eyeR', this.value)">
+                    <div class="servo-labels"><span>0° влево</span><span>90° центр</span><span>180° вправо</span></div>
                 </div>
                 <div class="servo-card">
                     <h3>🦷 Челюсть <span class="servo-value" id="jaw-val">90°</span></h3>
-                    <input type="range" id="jaw" min="60" max="120" value="90" oninput="updateServo('jaw', this.value)">
-                    <div class="servo-labels"><span>60° закр.</span><span>90°</span><span>120° шир.</span></div>
-                </div>
-                <div class="servo-card">
-                    <h3>🔄 Поворот <span class="servo-value" id="headRot-val">90°</span></h3>
-                    <input type="range" id="headRot" min="30" max="150" value="90" oninput="updateServo('headRot', this.value)">
-                    <div class="servo-labels"><span>30°</span><span>90° прямо</span><span>150°</span></div>
-                </div>
-                <div class="servo-card">
-                    <h3>↕️ Шея <span class="servo-value" id="neckUD-val">90°</span></h3>
-                    <input type="range" id="neckUD" min="50" max="130" value="90" oninput="updateServo('neckUD', this.value)">
-                    <div class="servo-labels"><span>50° вниз</span><span>90°</span><span>130° вверх</span></div>
-                </div>
-                <div class="servo-card">
-                    <h3>↔️ Шея <span class="servo-value" id="neckLR-val">90°</span></h3>
-                    <input type="range" id="neckLR" min="40" max="140" value="90" oninput="updateServo('neckLR', this.value)">
-                    <div class="servo-labels"><span>40° лево</span><span>90°</span><span>140° право</span></div>
+                    <input type="range" id="jaw" min="0" max="180" value="90" oninput="updateServo('jaw', this.value)">
+                    <div class="servo-labels"><span>0° закрыта</span><span>90°</span><span>180° открыта</span></div>
                 </div>
             </div>
             <div class="btn-group">
-                <button class="btn btn-primary" onclick="sendCmd('HOME')">🏠 Центр (90°)</button>
-                <button class="btn" onclick="sendCmd('STATUS')">📊 Статус Uno</button>
+                <button class="btn" onclick="sendCmd('HOME')">🏠 Центр</button>
+                <button class="btn" onclick="sendCmd('STATUS')">📊 Статус</button>
             </div>
         </div>
 
+        <!-- RGB LED -->
         <div class="panel">
-            <h2>🦾 Сервоприводы тела (Arduino Mega)</h2>
+            <h2>💡 RGB LED</h2>
+            <div class="color-preview" id="colorPreview"></div>
+            <div class="rgb-controls">
+                <div>
+                    <label style="color: #f85149;">🔴 Red: <span id="r-val">0</span></label>
+                    <input type="range" id="rgbR" min="0" max="255" value="0" oninput="updateRGB()">
+                </div>
+                <div>
+                    <label style="color: #3fb950;">🟢 Green: <span id="g-val">0</span></label>
+                    <input type="range" id="rgbG" min="0" max="255" value="0" oninput="updateRGB()">
+                </div>
+                <div>
+                    <label style="color: #58a6ff;">🔵 Blue: <span id="b-val">0</span></label>
+                    <input type="range" id="rgbB" min="0" max="255" value="0" oninput="updateRGB()">
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn" onclick="sendRGB()">Применить</button>
+                <button class="btn btn-danger" onclick="sendCmd('OFF')">⬛ Выключить</button>
+                <button class="btn" onclick="sendCmd('BLINK')">✨ Мигание</button>
+            </div>
+            <div class="presets">
+                <div class="preset-btn" style="background:#ff0000" onclick="setRGB(255,0,0)" title="red"></div>
+                <div class="preset-btn" style="background:#00ff00" onclick="setRGB(0,255,0)" title="green"></div>
+                <div class="preset-btn" style="background:#0000ff" onclick="setRGB(0,0,255)" title="blue"></div>
+                <div class="preset-btn" style="background:#ffffff" onclick="setRGB(255,255,255)" title="white"></div>
+                <div class="preset-btn" style="background:#ffff00" onclick="setRGB(255,255,0)" title="yellow"></div>
+                <div class="preset-btn" style="background:#00ffff" onclick="setRGB(0,255,255)" title="cyan"></div>
+                <div class="preset-btn" style="background:#ff00ff" onclick="setRGB(255,0,255)" title="magenta"></div>
+                <div class="preset-btn" style="background:#ffa500" onclick="setRGB(255,165,0)" title="orange"></div>
+                <div class="preset-btn" style="background:#ffc0cb" onclick="setRGB(255,192,203)" title="pink"></div>
+                <div class="preset-btn" style="background:#800080" onclick="setRGB(128,0,128)" title="purple"></div>
+            </div>
+        </div>
+
+        <!-- Body Servos -->
+        <div class="panel">
+            <h2>🦾 Тело (Arduino Mega)</h2>
             <div class="servo-grid">
                 <div class="servo-card">
-                    <h3>💪 Плечо L <span class="servo-value" id="shoulderL-val">90°</span></h3>
-                    <input type="range" id="shoulderL" min="10" max="170" value="90" oninput="updateServo('shoulderL', this.value)">
-                    <div class="servo-labels"><span>10°</span><span>90°</span><span>170°</span></div>
+                    <h3>Плечо L <span class="servo-value" id="shoulderL-val">90°</span></h3>
+                    <input type="range" id="shoulderL" min="0" max="180" value="90" oninput="updateServo('shoulderL', this.value)">
+                    <div class="servo-labels"><span>0°</span><span>90°</span><span>180°</span></div>
                 </div>
                 <div class="servo-card">
-                    <h3>💪 Плечо R <span class="servo-value" id="shoulderR-val">90°</span></h3>
-                    <input type="range" id="shoulderR" min="10" max="170" value="90" oninput="updateServo('shoulderR', this.value)">
-                    <div class="servo-labels"><span>10°</span><span>90°</span><span>170°</span></div>
+                    <h3>Плечо R <span class="servo-value" id="shoulderR-val">90°</span></h3>
+                    <input type="range" id="shoulderR" min="0" max="180" value="90" oninput="updateServo('shoulderR', this.value)">
+                    <div class="servo-labels"><span>0°</span><span>90°</span><span>180°</span></div>
                 </div>
                 <div class="servo-card">
-                    <h3>🦴 Локоть L <span class="servo-value" id="elbowL-val">90°</span></h3>
-                    <input type="range" id="elbowL" min="20" max="160" value="90" oninput="updateServo('elbowL', this.value)">
-                    <div class="servo-labels"><span>20°</span><span>90°</span><span>160°</span></div>
+                    <h3>Локоть L <span class="servo-value" id="elbowL-val">90°</span></h3>
+                    <input type="range" id="elbowL" min="0" max="180" value="90" oninput="updateServo('elbowL', this.value)">
+                    <div class="servo-labels"><span>0°</span><span>90°</span><span>180°</span></div>
                 </div>
                 <div class="servo-card">
-                    <h3>🦴 Локоть R <span class="servo-value" id="elbowR-val">90°</span></h3>
-                    <input type="range" id="elbowR" min="20" max="160" value="90" oninput="updateServo('elbowR', this.value)">
-                    <div class="servo-labels"><span>20°</span><span>90°</span><span>160°</span></div>
+                    <h3>Локоть R <span class="servo-value" id="elbowR-val">90°</span></h3>
+                    <input type="range" id="elbowR" min="0" max="180" value="90" oninput="updateServo('elbowR', this.value)">
+                    <div class="servo-labels"><span>0°</span><span>90°</span><span>180°</span></div>
                 </div>
             </div>
             <div class="btn-group">
-                <button class="btn btn-primary" onclick="sendCmd('CENTER')">🏠 Центр (90°)</button>
-                <button class="btn" onclick="sendCmd('STATUS_MEGA')">📊 Статус Mega</button>
+                <button class="btn" onclick="sendCmd('CENTER')">🏠 Центр</button>
             </div>
         </div>
 
+        <!-- Log -->
         <div class="panel">
-            <h2>🔍 Отладка — Логи</h2>
-            <div class="debug-block">
-                <div>
-                    <div class="log-header">
-                        <span><b>📟 Arduino (USB Serial)</b></span>
-                        <button class="btn log-clear" onclick="clearLog('arduinoLog')">Очистить</button>
-                    </div>
-                    <div class="log-panel" id="arduinoLog">
-                        <div class="log-entry info">Ожидание данных от Arduino...</div>
-                    </div>
-                </div>
-                <div>
-                    <div class="log-header">
-                        <span><b>🖥️ Сервер + Pi</b></span>
-                        <button class="btn log-clear" onclick="clearLog('serverLog')">Очистить</button>
-                    </div>
-                    <div class="log-panel" id="serverLog">
-                        <div class="log-entry info">Логи сервера появятся при подключении.</div>
-                    </div>
-                </div>
-            </div>
-            <div class="btn-group" style="margin-top:10px;">
-                <button class="btn" onclick="requestStatus()">📊 STATUS</button>
-                <button class="btn" onclick="requestServerStatus()">🖥️ Статус сервера</button>
-                <button class="btn" onclick="fetchServerLogs()">📋 Логи сервера</button>
+            <h2>📋 Лог команд</h2>
+            <div class="log-panel" id="logPanel">
+                <div class="log-entry">Подключитесь к Raspberry Pi для начала работы.</div>
             </div>
         </div>
     </div>
 
     <script>
+        // Register Service Worker for PWA (offline support)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            });
+        }
+
         let ws = null;
         let connected = false;
-        let blinkTimer = null;
 
         function connect() {
             const ip = document.getElementById('piIp').value.trim();
             const port = document.getElementById('wsPort').value.trim() || '3000';
             const url = `ws://${ip}:${port}`;
+
             try {
                 ws = new WebSocket(url);
                 ws.onopen = () => {
@@ -499,13 +357,15 @@
                     document.getElementById('wsStatus').style.color = '#3fb950';
                     document.getElementById('unoStatus').classList.add('online');
                     document.getElementById('megaStatus').classList.add('online');
-                    log('server', 'Подключено к ' + url, 'ok');
+                    log('Подключено к ' + url, 'ok');
                 };
                 ws.onmessage = (e) => {
+                    log('← ' + e.data, 'ok');
                     try {
                         const msg = JSON.parse(e.data);
-                        if (msg.type === 'state' && msg.data) updateUI(msg.data);
-                        if (msg.type === 'server_status') log('server', 'Server status: uptime=' + Math.round(msg.data.uptime) + 's', 'info');
+                        if (msg.type === 'state' && msg.data) {
+                            updateUI(msg.data);
+                        }
                     } catch(e) {}
                 };
                 ws.onclose = () => {
@@ -514,26 +374,37 @@
                     document.getElementById('wsStatus').style.color = '#8b949e';
                     document.getElementById('unoStatus').classList.remove('online');
                     document.getElementById('megaStatus').classList.remove('online');
-                    log('server', 'Отключено', 'err');
+                    log('Отключено', 'err');
                 };
-                ws.onerror = () => { log('server', 'Ошибка WebSocket', 'err'); };
-            } catch(e) { log('server', 'Ошибка: ' + e.message, 'err'); }
+                ws.onerror = (e) => {
+                    log('Ошибка WebSocket: ' + e.type, 'err');
+                };
+            } catch(e) {
+                log('Ошибка подключения: ' + e.message, 'err');
+            }
         }
 
-        function disconnect() { if (ws) { ws.close(); ws = null; } }
+        function disconnect() {
+            if (ws) { ws.close(); ws = null; }
+        }
 
         function sendCmd(cmd) {
-            log('server', '→ ' + cmd, 'cmd');
-            if (ws && connected) ws.send(JSON.stringify({ type: 'cmd', data: cmd }));
+            log('→ ' + cmd, 'cmd');
+            if (ws && connected) {
+                ws.send(JSON.stringify({ type: 'cmd', data: cmd }));
+            } else {
+                log('Не подключено', 'err');
+            }
         }
 
         function updateServo(name, value) {
             document.getElementById(name + '-val').textContent = value + '°';
-            const headServos = ['eyeL','eyeR','jaw','headRot','neckUD','neckLR'];
-            const board = headServos.includes(name) ? 'head' : 'body';
+            const board = ['eyeL','eyeR','jaw'].includes(name) ? 'head' : 'body';
             const cmd = JSON.stringify({ type: 'servo', board, servo: name, angle: parseInt(value) });
-            log('server', '→ SERVO:' + name + ':' + value, 'cmd');
-            if (ws && connected) ws.send(cmd);
+            log('→ SERVO:' + name + ':' + value, 'cmd');
+            if (ws && connected) {
+                ws.send(cmd);
+            }
         }
 
         function updateRGB() {
@@ -551,44 +422,18 @@
             const g = document.getElementById('rgbG').value;
             const b = document.getElementById('rgbB').value;
             const cmd = JSON.stringify({ type: 'rgb', r: parseInt(r), g: parseInt(g), b: parseInt(b) });
-            log('server', '→ RGB:' + r + ',' + g + ',' + b, 'cmd');
-            if (ws && connected) ws.send(cmd);
-        }
-
-        function sendOff() {
-            log('server', '→ OFF', 'cmd');
-            if (ws && connected) ws.send(JSON.stringify({ type: 'rgb', r: 0, g: 0, b: 0 }));
+            log('→ RGB:' + r + ',' + g + ',' + b, 'cmd');
+            if (ws && connected) {
+                ws.send(cmd);
+            }
         }
 
         function setRGB(r, g, b) {
             document.getElementById('rgbR').value = r;
             document.getElementById('rgbG').value = g;
             document.getElementById('rgbB').value = b;
-            updateRGB(); sendRGB();
-        }
-
-        function sendPreset(name) {
-            log('server', '→ PRESET:' + name, 'cmd');
-            if (ws && connected) ws.send(JSON.stringify({ type: 'preset', name }));
-        }
-
-        function startBlink() {
-            const interval = parseInt(document.getElementById('blinkInterval').value) || 500;
-            if (blinkTimer) clearInterval(blinkTimer);
-            const r = document.getElementById('rgbR').value;
-            const g = document.getElementById('rgbG').value;
-            const b = document.getElementById('rgbB').value;
-            let state = true;
-            blinkTimer = setInterval(() => {
-                if (state) { if (ws && connected) ws.send(JSON.stringify({ type: 'rgb', r: parseInt(r), g: parseInt(g), b: parseInt(b) })); }
-                else { if (ws && connected) ws.send(JSON.stringify({ type: 'rgb', r: 0, g: 0, b: 0 })); }
-                state = !state;
-            }, interval);
-            log('server', '✨ Моргало вкл (' + interval + 'мс)', 'info');
-        }
-
-        function stopBlink() {
-            if (blinkTimer) { clearInterval(blinkTimer); blinkTimer = null; log('server', '✨ Моргало выкл', 'info'); }
+            updateRGB();
+            sendRGB();
         }
 
         function updateUI(data) {
@@ -605,49 +450,17 @@
                 document.getElementById('rgbG').value = data.rgb.g || 0;
                 document.getElementById('rgbB').value = data.rgb.b || 0;
                 updateRGB();
-                document.getElementById('currentR').textContent = data.rgb.r || 0;
-                document.getElementById('currentG').textContent = data.rgb.g || 0;
-                document.getElementById('currentB').textContent = data.rgb.b || 0;
-                const hex = '#' + [data.rgb.r||0, data.rgb.g||0, data.rgb.b||0].map(v => v.toString(16).padStart(2,'0')).join('');
-                document.getElementById('currentColorHex').textContent = hex;
             }
         }
 
-        function requestStatus() {
-            log('server', '→ STATUS', 'cmd');
-            if (ws && connected) ws.send(JSON.stringify({ type: 'cmd', data: 'STATUS' }));
-        }
-
-        function requestServerStatus() {
-            if (ws && connected) ws.send(JSON.stringify({ type: 'cmd', data: 'SERVER_STATUS' }));
-        }
-
-        async function fetchServerLogs() {
-            try {
-                const ip = document.getElementById('piIp').value.trim();
-                const resp = await fetch(`http://${ip}:3000/api/logs`);
-                if (resp.ok) {
-                    const data = await resp.json();
-                    if (data.serial) data.serial.forEach(l => log('arduino', l, l.includes('OK') ? 'ok' : (l.includes('ERR') ? 'err' : 'info')));
-                    if (data.server) data.server.forEach(l => log('server', l, 'info'));
-                }
-            } catch(e) { log('server', 'Не удалось: ' + e.message, 'err'); }
-        }
-
-        function log(panel, msg, type) {
-            const el = document.getElementById(panel + 'Log');
-            if (!el) return;
+        function log(msg, type) {
+            const panel = document.getElementById('logPanel');
             const entry = document.createElement('div');
             entry.className = 'log-entry ' + (type || '');
             const time = new Date().toLocaleTimeString();
             entry.textContent = '[' + time + '] ' + msg;
-            el.appendChild(entry);
-            el.scrollTop = el.scrollHeight;
-        }
-
-        function clearLog(id) {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = '';
+            panel.appendChild(entry);
+            panel.scrollTop = panel.scrollHeight;
         }
     </script>
 </body>
