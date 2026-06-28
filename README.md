@@ -63,6 +63,8 @@ Arduino Uno (Голова)  ←USB→  Raspberry Pi 3B  ←USB→  Arduino Mega 
 
 ## Архитектура
 
+![Robot Catty Architecture](diagram.png)
+
 ```
 ┌─────────────┐     USB      ┌──────────────┐
 │             │──────────────│ Arduino Uno  │ Голова: 3 серво + RGB LED
