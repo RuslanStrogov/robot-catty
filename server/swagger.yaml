@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Robot Catty API
   description: REST API для управления роботом Robot Catty (Raspberry Pi + Arduino Uno/Mega)
-  version: 1.0.0
+  version: 2.0.0
   contact:
     name: Ruslan Strogov
     url: https://github.com/RuslanStrogov/robot-catty
@@ -22,6 +22,10 @@ tags:
     description: Установка RGB LED подсветки
   - name: Animation
     description: Анимации робота
+  - name: Config
+    description: Управление конфигурацией (порты, пины)
+  - name: Monitor
+    description: Системный мониторинг Raspberry Pi
 
 paths:
   /api/status:
@@ -99,8 +103,6 @@ paths:
                 type: object
                 properties:
                   ok: { type: boolean, example: true }
-        '400':
-          description: Неправильный запрос
 
   /api/rgb:
     post:
@@ -114,18 +116,9 @@ paths:
               type: object
               required: [r, g, b]
               properties:
-                r:
-                  type: integer
-                  minimum: 0
-                  maximum: 255
-                g:
-                  type: integer
-                  minimum: 0
-                  maximum: 255
-                b:
-                  type: integer
-                  minimum: 0
-                  maximum: 255
+                r: { type: integer, minimum: 0, maximum: 255 }
+                g: { type: integer, minimum: 0, maximum: 255 }
+                b: { type: integer, minimum: 0, maximum: 255 }
       responses:
         '200':
           description: Успешно
@@ -153,7 +146,6 @@ paths:
                 name:
                   type: string
                   enum: [red, green, blue, white, yellow, cyan, magenta, orange, pink, purple]
-                  description: Имя пресета
       responses:
         '200':
           description: Успешно
@@ -173,10 +165,8 @@ paths:
                 name:
                   type: string
                   enum: [wave, nod, shake, blink, lookAround, dance]
-                  description: Тип анимации
                 params:
                   type: object
-                  description: "Дополнительные параметры анимации"
       responses:
         '200':
           description: Анимация запущена
@@ -188,3 +178,181 @@ paths:
       responses:
         '200':
           description: Анимация остановлена
+
+  # ============ CONFIG ============
+  /api/config:
+    get:
+      tags: [Config]
+      summary: Получить полную конфигурацию
+      description: Возвращает все настройки сервера, портов и пинов
+      responses:
+        '200':
+          description: Конфигурация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Config'
+    put:
+      tags: [Config]
+      summary: Обновить конфигурацию
+      description: Частичное или полное обновление. Отсутствующие ключи сохраняются.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Config'
+      responses:
+        '200':
+          description: Конфигурация обновлена
+
+  /api/config/reset:
+    post:
+      tags: [Config]
+      summary: Сбросить конфигурацию на стандартную
+      description: Восстанавливает настройки по умолчанию (из config.default.json)
+      responses:
+        '200':
+          description: Конфигурация сброшена
+
+  /api/config/port/{board}:
+    get:
+      tags: [Config]
+      summary: Получить порт платы
+      parameters:
+        - in: path
+          name: board
+          required: true
+          schema: { type: string, enum: [uno, mega] }
+      responses:
+        '200':
+          description: Порт платы
+    put:
+      tags: [Config]
+      summary: Изменить порт и скорость платы
+      parameters:
+        - in: path
+          name: board
+          required: true
+          schema: { type: string, enum: [uno, mega] }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                port: { type: string, example: "/dev/ttyUSB1" }
+                baud: { type: integer, example: 9600 }
+      responses:
+        '200':
+          description: Порт изменён
+
+  /api/config/pin/{module}/{name}:
+    get:
+      tags: [Config]
+      summary: Получить значение пина
+      parameters:
+        - in: path
+          name: module
+          required: true
+          schema: { type: string, enum: [head, body, rgb] }
+        - in: path
+          name: name
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Значение пина
+    put:
+      tags: [Config]
+      summary: Изменить значение пина
+      parameters:
+        - in: path
+          name: module
+          required: true
+          schema: { type: string, enum: [head, body, rgb] }
+        - in: path
+          name: name
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pin]
+              properties:
+                pin: { type: integer, example: 4 }
+      responses:
+        '200':
+          description: Пин изменён
+
+  # ============ MONITOR ============
+  /api/server/status:
+    get:
+      tags: [Monitor]
+      summary: Получить состояние Raspberry Pi
+      description: Uptime, CPU, RAM, диск, сеть, напряжение, состояние компонентов
+      responses:
+        '200':
+          description: Статус Pi
+
+  /api/logs:
+    get:
+      tags: [Monitor]
+      summary: Получить лог команд сервера
+      description: Последние 50 записей serial и server лога
+      responses:
+        '200':
+          description: Логи
+
+components:
+  schemas:
+    Config:
+      type: object
+      properties:
+        server:
+          type: object
+          properties:
+            port: { type: integer, example: 3000 }
+            name: { type: string, example: "Robot Catty" }
+        serial:
+          type: object
+          properties:
+            uno:
+              type: object
+              properties:
+                port: { type: string }
+                baud: { type: integer }
+            mega:
+              type: object
+              properties:
+                port: { type: string }
+                baud: { type: integer }
+        servo_pins:
+          type: object
+          properties:
+            head:
+              type: object
+              properties:
+                eyeL: { type: integer }
+                eyeR: { type: integer }
+                jaw: { type: integer }
+                headRot: { type: integer }
+                neckUD: { type: integer }
+                neckLR: { type: integer }
+            body:
+              type: object
+              properties:
+                shoulderL: { type: integer }
+                shoulderR: { type: integer }
+                elbowL: { type: integer }
+                elbowR: { type: integer }
+        rgb_pins:
+          type: object
+          properties:
+            red: { type: integer }
+            green: { type: integer }
+            blue: { type: integer }

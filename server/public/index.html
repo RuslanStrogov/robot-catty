@@ -380,8 +380,59 @@
             </div>
         </div>
 
-        <!-- 📊 Состояние системы -->
-        <div class="panel" id="panel-sys">
+        <!-- 🔗 API Docs -->
+                <div style="text-align:center;margin-bottom:16px">
+                    <a href="/api/docs" target="_blank" class="btn btn-primary" style="text-decoration:none;padding:10px 24px;font-size:0.95em">
+                        📖 Swagger API Docs
+                    </a>
+                </div>
+
+                <!-- ⚙️ Конфигурация -->
+                <div class="panel" id="panel-config">
+                    <div class="panel-head" onclick="togglePanel('panel-config')">
+                        <h2>⚙️ Конфигурация</h2>
+                        <span class="panel-toggle" id="toggle-config">▼</span>
+                    </div>
+                    <div class="panel-body" id="body-config">
+                        <div class="sys-grid" style="margin-bottom:12px">
+                            <div class="sys-card">
+                                <div class="label">UNO порт</div>
+                                <div class="value" id="cfg-uno-port" style="font-size:0.85em">—</div>
+                            </div>
+                            <div class="sys-card">
+                                <div class="label">UNO baud</div>
+                                <div class="value" id="cfg-uno-baud">—</div>
+                            </div>
+                            <div class="sys-card">
+                                <div class="label">MEGA порт</div>
+                                <div class="value" id="cfg-mega-port" style="font-size:0.85em">—</div>
+                            </div>
+                            <div class="sys-card">
+                                <div class="label">MEGA baud</div>
+                                <div class="value" id="cfg-mega-baud">—</div>
+                            </div>
+                            <div class="sys-card">
+                                <div class="label">Порт сервера</div>
+                                <div class="value" id="cfg-server-port">—</div>
+                            </div>
+                        </div>
+                        <details style="margin-bottom:10px">
+                            <summary style="color:#58a6ff;cursor:pointer;font-size:0.85em">📌 Пины сервоприводов</summary>
+                            <div class="sys-grid" style="margin-top:8px" id="cfg-pins-head"></div>
+                        </details>
+                        <details style="margin-bottom:10px">
+                            <summary style="color:#58a6ff;cursor:pointer;font-size:0.85em">📌 Пины RGB</summary>
+                            <div class="sys-grid" style="margin-top:8px" id="cfg-pins-rgb"></div>
+                        </details>
+                        <div class="btn-group">
+                            <button class="btn btn-small" onclick="loadConfig()">🔄 Обновить</button>
+                            <button class="btn btn-small btn-danger" onclick="resetConfig()">↺ Сбросить на стандарт</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 📊 Состояние системы -->
+                <div class="panel" id="panel-sys">
             <div class="panel-head" onclick="togglePanel('panel-sys')">
                 <h2>📊 Состояние системы</h2>
                 <span class="panel-toggle" id="toggle-sys">▼</span>
@@ -644,7 +695,9 @@
                     // Разблокировать панели
                     enablePanels(true);
                     // Запросить системный статус
-                    requestSystemStatus();
+                                        requestSystemStatus();
+                                        // Загрузить конфигурацию
+                                        loadConfig();
                 };
                 ws.onmessage = (e) => {
                     try {
@@ -656,8 +709,11 @@
                             updateSystemStatus(msg.data);
                         }
                         if (msg.type === 'log' && msg.data) {
-                            log(msg.data.msg, msg.data.level || '');
-                        }
+                                                    log(msg.data.msg, msg.data.level || '');
+                                                }
+                                                if (msg.type === 'config' && msg.data) {
+                                                    renderConfig(msg.data);
+                                                }
                     } catch(e2) {
                         // plain text message
                         log('← ' + e.data, 'ok');
@@ -899,9 +955,56 @@
             document.getElementById('sys-disk').textContent = data.disk || '—';
             document.getElementById('sys-net').textContent = data.network || '—';
             document.getElementById('sys-volt').textContent = data.voltage || '—';
-        }
+                    }
 
-        // ===== CONNECT MODE =====
+                    // ===== CONFIG =====
+                    function loadConfig() {
+                        if (ws && connected) {
+                            ws.send(JSON.stringify({ type: 'config', action: 'get' }));
+                        } else {
+                            // REST fallback
+                            fetch('/api/config').then(r => r.json()).then(renderConfig).catch(() => {});
+                        }
+                    }
+
+                    function renderConfig(cfg) {
+                        if (!cfg) return;
+                        document.getElementById('cfg-uno-port').textContent = cfg.serial?.uno?.port || '—';
+                        document.getElementById('cfg-uno-baud').textContent = cfg.serial?.uno?.baud || '—';
+                        document.getElementById('cfg-mega-port').textContent = cfg.serial?.mega?.port || '—';
+                        document.getElementById('cfg-mega-baud').textContent = cfg.serial?.mega?.baud || '—';
+                        document.getElementById('cfg-server-port').textContent = cfg.server?.port || '—';
+
+                        // Pins: head
+                        const headPins = cfg.servo_pins?.head || {};
+                        const bodyPins = cfg.servo_pins?.body || {};
+                        const allPins = { ...headPins, ...bodyPins };
+                        const pinsHtml = Object.entries(allPins).map(([name, pin]) =>
+                            `<div class="sys-card"><div class="label">${name}</div><div class="value">${pin}</div></div>`
+                        ).join('');
+                        document.getElementById('cfg-pins-head').innerHTML = pinsHtml || '<div class="sys-card"><div class="value">Нет данных</div></div>';
+
+                        // Pins: RGB
+                        const rgbPins = cfg.rgb_pins || {};
+                        const rgbHtml = Object.entries(rgbPins).map(([name, pin]) =>
+                            `<div class="sys-card"><div class="label">${name}</div><div class="value">${pin}</div></div>`
+                        ).join('');
+                        document.getElementById('cfg-pins-rgb').innerHTML = rgbHtml || '<div class="sys-card"><div class="value">Нет данных</div></div>';
+                    }
+
+                    function resetConfig() {
+                        if (!confirm('Сбросить все настройки на стандартные?')) return;
+                        if (ws && connected) {
+                            ws.send(JSON.stringify({ type: 'config', action: 'reset' }));
+                        } else {
+                            fetch('/api/config/reset', { method: 'POST' })
+                                .then(r => r.json())
+                                .then(res => { if (res.ok) loadConfig(); log('Конфигурация сброшена', 'ok'); })
+                                .catch(e => log('Ошибка сброса: ' + e.message, 'err'));
+                        }
+                    }
+
+                    // ===== CONNECT MODE =====
         function toggleConnectMode() {
             const mode = document.querySelector('input[name="connectMode"]:checked').value;
             document.getElementById('directFields').style.display = mode === 'direct' ? 'flex' : 'none';

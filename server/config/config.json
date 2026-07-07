@@ -1,0 +1,37 @@
+{
+  "server": {
+    "port": 3000,
+    "name": "Robot Catty"
+  },
+  "serial": {
+    "uno": {
+      "port": "/dev/ttyUSB1",
+      "baud": 9600
+    },
+    "mega": {
+      "port": "/dev/ttyACM0",
+      "baud": 115200
+    }
+  },
+  "servo_pins": {
+    "head": {
+      "eyeL": 4,
+      "eyeR": 7,
+      "jaw": 8,
+      "headRot": 9,
+      "neckUD": 10,
+      "neckLR": 11
+    },
+    "body": {
+      "shoulderL": 2,
+      "shoulderR": 3,
+      "elbowL": 4,
+      "elbowR": 5
+    }
+  },
+  "rgb_pins": {
+    "red": 3,
+    "green": 5,
+    "blue": 6
+  }
+}
