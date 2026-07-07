@@ -2,11 +2,14 @@
  * Robot Catty — Config Manager
  * 
  * Загружает конфигурацию из config.json (создаёт копию из default при первом запуске).
+ * Поддерживает переменные окружения из .env (dotenv) — переопределяют config.json.
  * Предоставляет API для чтения/записи/сброса.
  */
 
 const fs = require('fs');
 const path = require('path');
+
+require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
 const CONFIG_DIR = __dirname;
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
@@ -128,7 +131,7 @@ function resetConfig() {
 }
 
 function getEnvOverrides() {
-    // Переопределение портов через переменные окружения (для pm2)
+    // Переопределение портов через переменные окружения (для pm2 и .env)
     const overrides = {};
     if (process.env.WEB_PORT) overrides.server = { port: parseInt(process.env.WEB_PORT) };
     if (process.env.UNO_PORT) {
@@ -150,6 +153,19 @@ function getEnvOverrides() {
         overrides.serial = overrides.serial || {};
         overrides.serial.mega = overrides.serial.mega || {};
         overrides.serial.mega.baud = parseInt(process.env.MEGA_BAUD);
+    }
+    // Host / domain overrides
+    if (process.env.SERVER_DOMAIN) {
+        overrides.host = overrides.host || {};
+        overrides.host.domain = process.env.SERVER_DOMAIN;
+    }
+    if (process.env.WS_PROTOCOL) {
+        overrides.host = overrides.host || {};
+        overrides.host.wsProtocol = process.env.WS_PROTOCOL;
+    }
+    if (process.env.PI_IP) {
+        overrides.host = overrides.host || {};
+        overrides.host.localIp = process.env.PI_IP;
     }
     return overrides;
 }

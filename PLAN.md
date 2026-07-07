@@ -165,8 +165,8 @@ GET    /api/docs.json           — OpenAPI Spec
 │  Pi Uptime: 12d 4h  |  CPU: 45%  |  72°C  │
 │  RAM: 427/985MB  |  SD: 62% заполнено      │
 │  ─── Сеть ───                              │
-│  eth0: 192.168.10.90 (connected)           │
-│  wlan0: 192.168.1.5 (connected)            │
+│  eth0: PI_ETH_IP (connected)           │
+│  wlan0: PI_WLAN_IP (connected)            │
 │  ─── Компоненты ───                        │
 │  🟢 UNO (Head) — 6 серво, RGB LED          │
 │  🟢 MEGA (Body) — 4 серво                  │

@@ -317,6 +317,18 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 
+// ——— Public Env API (no private data) ———
+app.get('/api/env', (req, res) => {
+    const cfg = configManager.getConfig();
+    res.json({
+        serverDomain: cfg.host?.domain || 'localhost',
+        wsProtocol: cfg.host?.wsProtocol || 'ws',
+        localIp: cfg.host?.localIp || '127.0.0.1',
+        wsPort: cfg.server?.port || 3000,
+        serverName: cfg.server?.name || 'Robot Catty'
+    });
+});
+
 // ——— Config API ———
 app.get('/api/config', (req, res) => {
     res.json(configManager.getConfig());

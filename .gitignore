@@ -3,3 +3,5 @@ android/
 .DS_Store
 *.log
 .env
+server/config/config.json
+server/config/state.json
