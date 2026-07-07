@@ -9,6 +9,7 @@ const path = require('path');
 const yaml = require('js-yaml');
 const SystemMonitor = require('./services/system-monitor');
 const configManager = require('./config/config');
+const statePersistence = require('./utils/state-persistence');
 
 // Load swagger spec
 const swaggerSpec = yaml.load(fs.readFileSync(path.join(__dirname, 'swagger.yaml'), 'utf8'));
@@ -56,15 +57,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 // ========== STATE ==========
-const state = {
-    servos: {
-        eyeL: 90, eyeR: 90, jaw: 90,
-        shoulderL: 90, shoulderR: 90, elbowL: 90, elbowR: 90
-    },
-    rgb: { r: 0, g: 0, b: 0 },
-    animation: null,
-    connections: { uno: false, mega: false }
-};
+const state = statePersistence.loadState();
 
 // ========== SERIAL PORTS ==========
 let unoPort = null;
@@ -201,6 +194,14 @@ wss.on('connection', (ws) => {
 
 function handleWSMessage(ws, req) {
     switch (req.type) {
+        case 'board_led':
+            if (req.board && req.state !== undefined) {
+                state.board_leds[req.board] = !!req.state;
+                sendToBoard(req.board, req.state ? 'LEDON' : 'LEDOFF');
+                broadcastState();
+            }
+            break;
+
         case 'servo':
             const board = ['eyeL','eyeR','jaw'].includes(req.servo) ? 'uno' : 'mega';
             sendToBoard(board, `SERVO:${req.servo}:${req.angle}`);
@@ -295,6 +296,7 @@ function broadcastState() {
     clients.forEach(ws => {
         if (ws.readyState === 1) ws.send(msg);
     });
+    statePersistence.saveState(state);
 }
 
 function broadcastConfig() {
@@ -439,6 +441,34 @@ app.post('/api/animation/stop', (req, res) => {
     sendToBoard('uno', 'STOP');
     sendToBoard('mega', 'STOP');
     res.json({ ok: true });
+});
+
+// ——— Board LED API ———
+app.get('/api/board-leds', (req, res) => {
+    res.json(state.board_leds);
+});
+
+app.put('/api/board-leds', (req, res) => {
+    const { board, state: ledState } = req.body;
+    if (!['uno', 'mega'].includes(board)) {
+        return res.status(400).json({ error: 'Board must be uno or mega' });
+    }
+    if (ledState === undefined) {
+        return res.status(400).json({ error: 'state (boolean) is required' });
+    }
+    state.board_leds[board] = !!ledState;
+    sendToBoard(board, ledState ? 'LEDON' : 'LEDOFF');
+    broadcastState();
+    res.json({ ok: true, board_leds: state.board_leds });
+});
+
+app.post('/api/board-leds/all-off', (req, res) => {
+    state.board_leds.uno = false;
+    state.board_leds.mega = false;
+    sendToBoard('uno', 'LEDOFF');
+    sendToBoard('mega', 'LEDOFF');
+    broadcastState();
+    res.json({ ok: true, msg: 'Все бортовые диоды выключены' });
 });
 
 // ========== LOG BUFFER ==========

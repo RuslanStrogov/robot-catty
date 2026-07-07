@@ -308,6 +308,45 @@ paths:
         '200':
           description: Логи
 
+# ============ BOARD LEDS ============
+  /api/board-leds:
+    get:
+      tags: [Status]
+      summary: Получить состояние бортовых диодов
+      description: "Возвращает { uno: bool, mega: bool }"
+      responses:
+        '200':
+          description: Состояние диодов
+    put:
+      tags: [Status]
+      summary: Включить/выключить бортовой диод на плате
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [board, state]
+              properties:
+                board:
+                  type: string
+                  enum: [uno, mega]
+                state:
+                  type: boolean
+                  description: true = включить, false = выключить
+      responses:
+        '200':
+          description: Диод переключён
+
+  /api/board-leds/all-off:
+    post:
+      tags: [Status]
+      summary: Выключить все бортовые диоды (кроме RGB)
+      description: Погасить оба бортовых светодиода на Uno и Mega, RGB не трогать
+      responses:
+        '200':
+          description: Все диоды выключены
+
 components:
   schemas:
     Config:
