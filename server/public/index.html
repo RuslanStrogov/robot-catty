@@ -497,9 +497,10 @@
                     </div>
                 </div>
                 <div class="btn-group">
-                    <button class="btn" onclick="sendCmd('HOME')">🏠 Центр</button>
-                    <button class="btn" onclick="sendCmd('STATUS')">📊 Статус</button>
-                </div>
+                                    <button class="btn" onclick="sendCmd('HOME')">🏠 Центр</button>
+                                    <button class="btn" onclick="sendCmd('STATUS')">📊 Статус</button>
+                                    <button class="btn" id="btn-uno-led" onclick="toggleBoardLed('uno')">💡 Диод: Вкл</button>
+                                </div>
             </div>
         </div>
 
@@ -526,9 +527,10 @@
                     </div>
                 </div>
                 <div class="btn-group">
-                    <button class="btn btn-primary" onclick="sendRGB()">Применить</button>
-                    <button class="btn btn-danger" onclick="sendCmd('OFF')">⬛ Выключить</button>
-                </div>
+                                    <button class="btn btn-primary" onclick="sendRGB()">Применить</button>
+                                    <button class="btn btn-danger" onclick="sendCmd('OFF')">⬛ Выключить</button>
+                                    <button class="btn" onclick="allBoardLedsOff()">🔌 Погасить LED плат</button>
+                                </div>
 
                 <!-- Мигание -->
                 <div class="blink-controls">
@@ -621,8 +623,9 @@
                     </div>
                 </div>
                 <div class="btn-group">
-                    <button class="btn" onclick="sendCmd('CENTER')">🏠 Центр</button>
-                </div>
+                                    <button class="btn" onclick="sendCmd('CENTER')">🏠 Центр</button>
+                                    <button class="btn" id="btn-mega-led" onclick="toggleBoardLed('mega')">💡 Диод: Вкл</button>
+                                </div>
             </div>
         </div>
 
@@ -652,14 +655,16 @@
 
         // ===== WEBSOCKET =====
         let ws = null;
-        let connected = false;
-        let blinkActive = false;
-        let transitionInterval = null;
+                let connected = false;
+                let blinkActive = false;
+                let transitionInterval = null;
+                let stateBoardLeds = { uno: false, mega: false };
 
         // Автоподключение при загрузке
         window.addEventListener('load', () => {
-            setTimeout(autoConnect, 500);
-        });
+                    setTimeout(autoConnect, 500);
+                    setTimeout(restorePanelStates, 100);
+                });
 
         function autoConnect() {
             if (!connected) connect();
@@ -754,41 +759,102 @@
         }
 
         // ===== COLLAPSIBLE PANELS =====
-        function togglePanel(panelId) {
-            const body = document.getElementById('body-' + panelId.replace('panel-',''));
-            const toggle = document.getElementById('toggle-' + panelId.replace('panel-',''));
-            if (!body || !toggle) return;
-            body.classList.toggle('hidden');
-            toggle.classList.toggle('collapsed');
-        }
+                function togglePanel(panelId) {
+                    const body = document.getElementById('body-' + panelId.replace('panel-',''));
+                    const toggle = document.getElementById('toggle-' + panelId.replace('panel-',''));
+                    if (!body || !toggle) return;
+                    body.classList.toggle('hidden');
+                    toggle.classList.toggle('collapsed');
+                    savePanelState(panelId, body.classList.contains('hidden'));
+                }
 
-        function collapsePanel(panelId) {
-            const body = document.getElementById('body-' + panelId.replace('panel-',''));
-            const toggle = document.getElementById('toggle-' + panelId.replace('panel-',''));
-            if (body && !body.classList.contains('hidden')) {
-                body.classList.add('hidden');
-                toggle.classList.add('collapsed');
-            }
-        }
+                function collapsePanel(panelId) {
+                    const body = document.getElementById('body-' + panelId.replace('panel-',''));
+                    const toggle = document.getElementById('toggle-' + panelId.replace('panel-',''));
+                    if (body && !body.classList.contains('hidden')) {
+                        body.classList.add('hidden');
+                        toggle.classList.add('collapsed');
+                        savePanelState(panelId, true);
+                    }
+                }
 
-        function expandPanel(panelId) {
-            const body = document.getElementById('body-' + panelId.replace('panel-',''));
-            const toggle = document.getElementById('toggle-' + panelId.replace('panel-',''));
-            if (body && body.classList.contains('hidden')) {
-                body.classList.remove('hidden');
-                toggle.classList.remove('collapsed');
-            }
-        }
+                function expandPanel(panelId) {
+                    const body = document.getElementById('body-' + panelId.replace('panel-',''));
+                    const toggle = document.getElementById('toggle-' + panelId.replace('panel-',''));
+                    if (body && body.classList.contains('hidden')) {
+                        body.classList.remove('hidden');
+                        toggle.classList.remove('collapsed');
+                        savePanelState(panelId, false);
+                    }
+                }
+
+                // Сохраняем состояние панелей в localStorage
+                function savePanelState(panelId, collapsed) {
+                    try {
+                        const states = JSON.parse(localStorage.getItem('panelStates') || '{}');
+                        states[panelId] = collapsed;
+                        localStorage.setItem('panelStates', JSON.stringify(states));
+                    } catch(e) {}
+                }
+
+                function restorePanelStates() {
+                    try {
+                        const states = JSON.parse(localStorage.getItem('panelStates') || '{}');
+                        Object.entries(states).forEach(([panelId, collapsed]) => {
+                            if (collapsed) {
+                                collapsePanel(panelId);
+                            } else {
+                                expandPanel(panelId);
+                            }
+                        });
+                    } catch(e) {}
+                }
 
         // ===== COMMANDS =====
         function sendCmd(cmd) {
-            log('→ ' + cmd, 'cmd');
-            if (ws && connected) {
-                ws.send(JSON.stringify({ type: 'cmd', data: cmd }));
-            } else {
-                log('Не подключено', 'err');
-            }
-        }
+                    log('→ ' + cmd, 'cmd');
+                    if (ws && connected) {
+                        ws.send(JSON.stringify({ type: 'cmd', data: cmd }));
+                    } else {
+                        log('Не подключено', 'err');
+                    }
+                }
+
+                // ===== BOARD LEDS =====
+                function toggleBoardLed(board) {
+                    const current = stateBoardLeds[board] || false;
+                    const newState = !current;
+                    stateBoardLeds[board] = newState;
+                    updateBoardLedBtn(board, newState);
+                    if (ws && connected) {
+                        ws.send(JSON.stringify({ type: 'board_led', board, state: newState }));
+                        log(`→ BOARD_LED:${board}=${newState ? 'ON' : 'OFF'}`, 'cmd');
+                    }
+                }
+
+                function updateBoardLedBtn(board, on) {
+                    const btn = document.getElementById('btn-' + board + '-led');
+                    if (btn) {
+                        btn.textContent = on ? '💡 Диод: Выкл' : '💡 Диод: Вкл';
+                        btn.style.borderColor = on ? '#d29922' : '#30363d';
+                        btn.style.background = on ? '#3d2e00' : '#21262d';
+                    }
+                }
+
+                function setBoardLed(board, on) {
+                    stateBoardLeds[board] = !!on;
+                    updateBoardLedBtn(board, !!on);
+                }
+
+                function allBoardLedsOff() {
+                    setBoardLed('uno', false);
+                    setBoardLed('mega', false);
+                    if (ws && connected) {
+                        ws.send(JSON.stringify({ type: 'board_led', board: 'uno', state: false }));
+                        ws.send(JSON.stringify({ type: 'board_led', board: 'mega', state: false }));
+                        log('→ BOARD_LED:ALL_OFF (RGB сохранён)', 'cmd');
+                    }
+                }
 
         function updateServo(name, value) {
             document.getElementById(name + '-val').textContent = value + '°';
@@ -919,9 +985,14 @@
                 updateRGB();
             }
             if (data.connections) {
-                document.getElementById('unoStatus').classList.toggle('online', !!data.connections.uno);
-                document.getElementById('megaStatus').classList.toggle('online', !!data.connections.mega);
-            }
+                            document.getElementById('unoStatus').classList.toggle('online', !!data.connections.uno);
+                            document.getElementById('megaStatus').classList.toggle('online', !!data.connections.mega);
+                        }
+                        // Board LEDs
+                        if (data.board_leds) {
+                            setBoardLed('uno', data.board_leds.uno);
+                            setBoardLed('mega', data.board_leds.mega);
+                        }
         }
 
         // ===== SYSTEM STATUS =====
