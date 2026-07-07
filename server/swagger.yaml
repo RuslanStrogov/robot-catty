@@ -8,8 +8,8 @@ info:
     url: https://github.com/RuslanStrogov/robot-catty
 
 servers:
-  - url: http://catty.strogov.com
-    description: Production
+  - url: http://localhost:3000
+    description: Локальный сервер (замените YOUR_DOMAIN на ваш домен в продакшене)
   - url: http://localhost:3000
     description: Local
 

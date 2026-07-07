@@ -3,9 +3,14 @@
     "port": 3000,
     "name": "Robot Catty"
   },
+  "host": {
+    "domain": "localhost",
+    "wsProtocol": "ws",
+    "localIp": "127.0.0.1"
+  },
   "serial": {
     "uno": {
-      "port": "/dev/ttyUSB1",
+      "port": "/dev/ttyUSB0",
       "baud": 9600
     },
     "mega": {

@@ -352,8 +352,8 @@ GND блока питания ─── GND Pi (GPIO) ─── GND Arduino (ч�
 ### WebSocket
 
 Подключение:
-- **Через домен:** `wss://catty.strogov.com/ws` (рекомендуется — работает через nginx с SSL)
-- **Прямой IP:** `ws://<pi-ip>:3000/ws` (только в локальной сети)
+- **Через домен:** `wss://YOUR_DOMAIN/ws` (рекомендуется — работает через nginx с SSL)
+- **Прямой IP:** `ws://PI_IP:3000/ws` (только в локальной сети)
 
 ```json
 {"type": "servo", "board": "head", "servo": "eyeL", "angle": 120}
@@ -483,7 +483,7 @@ robot-catty/
 - Mega 2560: Servo library конфликтует с Timer1 — используйте прямую ШИМ или `Servo.h` с `lib_deps`
 - **USB-камера:** не подключена — все USB-порты заняты (WiFi-адаптер TP-Link и 2× Arduino). Решение: отключить WiFi при проводном Ethernet
 - **Xbox Kinect:** смонтирован в корпус, но активная настройка отложена. Pi 3B может не тянуть скелетный трекинг (>60% CPU на libfreenect). Возможно потребуется внешний сервер для OpenCV
-- **WebSocket:** при подключении через прямой IP (`ws://<ip>:3000`) может быть ошибка `WebSocket connection failed` из-за отсутствия SSL — используйте `wss://catty.strogov.com/ws` когда сайт открыт через HTTPS
+\- **WebSocket:** при подключении через прямой IP (`ws://IP:3000`) может быть ошибка `WebSocket connection failed` из-за отсутствия SSL — используйте `wss://YOUR_DOMAIN/ws` когда сайт открыт через HTTPS
 
 Подробнее в [ISSUES.md](ISSUES.md)
 

@@ -369,7 +369,7 @@
                         <label><input type="radio" name="connectMode" value="direct" onchange="toggleConnectMode()"> Прямой IP</label>
                     </div>
                     <div id="directFields">
-                        <input type="text" id="piIp" placeholder="IP Raspberry Pi" value="192.168.10.90">
+                        <input type="text" id="piIp" placeholder="IP Raspberry Pi" value="">
                         <input type="text" id="wsPort" placeholder="Порт" value="3000">
                     </div>
                     <div>
@@ -654,32 +654,49 @@
         }
 
         // ===== WEBSOCKET =====
-        let ws = null;
-                let connected = false;
-                let blinkActive = false;
-                let transitionInterval = null;
-                let stateBoardLeds = { uno: false, mega: false };
+                let ws = null;
+                        let connected = false;
+                        let blinkActive = false;
+                        let transitionInterval = null;
+                        let stateBoardLeds = { uno: false, mega: false };
+                        let envConfig = {};
 
-        // Автоподключение при загрузке
-        window.addEventListener('load', () => {
-                    setTimeout(autoConnect, 500);
-                    setTimeout(restorePanelStates, 100);
-                });
+                // Загрузить конфиг окружения с сервера
+                function loadEnvConfig() {
+                    fetch('/api/env')
+                        .then(r => r.json())
+                        .then(cfg => {
+                            envConfig = cfg;
+                            // Заполнить IP если пусто
+                            const ipField = document.getElementById('piIp');
+                            if (ipField && !ipField.value) ipField.value = cfg.localIp;
+                        })
+                        .catch(() => {}); // тихо, без ошибки
+                }
 
-        function autoConnect() {
-            if (!connected) connect();
-        }
+                // Автоподключение при загрузке
+                window.addEventListener('load', () => {
+                            loadEnvConfig();
+                            setTimeout(autoConnect, 500);
+                            setTimeout(restorePanelStates, 100);
+                        });
 
-        function connect() {
-            const mode = document.querySelector('input[name="connectMode"]:checked').value;
-            let url;
-            if (mode === 'domain') {
-                url = 'wss://catty.strogov.com/ws';
-            } else {
-                const ip = document.getElementById('piIp').value.trim();
-                const port = document.getElementById('wsPort').value.trim() || '3000';
-                url = `ws://${ip}:${port}/ws`;
-            }
+                function autoConnect() {
+                    if (!connected) connect();
+                }
+
+                function connect() {
+                    const mode = document.querySelector('input[name="connectMode"]:checked').value;
+                    let url;
+                    if (mode === 'domain') {
+                                            const domain = envConfig.serverDomain || window.location.hostname;
+                                            const protocol = envConfig.wsProtocol || (window.location.protocol === 'https:' ? 'wss' : 'ws');
+                                            url = `${protocol}://${domain}/ws`;
+                    } else {
+                        const ip = document.getElementById('piIp').value.trim();
+                        const port = document.getElementById('wsPort').value.trim() || '3000';
+                        url = `ws://${ip}:${port}/ws`;
+                    }
 
             if (ws && (ws.readyState === 0 || ws.readyState === 1)) {
                 log('Уже подключено', 'warn');
