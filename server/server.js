@@ -174,9 +174,21 @@ function handleWSMessage(ws, req) {
             break;
         
         case 'rgb':
-            sendToBoard('uno', `RGB:${req.r},${req.g},${req.b}`);
+            // Исправление: красный и синий перепутаны на Arduino (GPIO 17=R, 22=G, 24=B)
+            // отправляем b,g,r вместо r,g,b для соответствия пинам
+            sendToBoard('uno', `RGB:${req.b},${req.g},${req.r}`);
             state.rgb = { r: req.r, g: req.g, b: req.b };
             broadcastState();
+            break;
+
+        case 'blink':
+            sendToBoard('uno', `BLINK:${req.on},${req.off}`);
+            state.blink = { on: req.on, off: req.off };
+            break;
+
+        case 'transition':
+            sendToBoard('uno', `TRANS:${req.from},${req.to},${req.step}`);
+            state.transition = { from: req.from, to: req.to, step: req.step };
             break;
         
         case 'cmd':
