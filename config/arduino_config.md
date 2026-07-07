@@ -17,9 +17,9 @@
 ## RGB LED Wiring (Arduino Uno)
 
 ```
-Arduino Uno Pin 9  ---[220Ω]--- RED   LED
-Arduino Uno Pin 10 ---[220Ω]--- GREEN LED
-Arduino Uno Pin 11 ---[220Ω]--- BLUE  LED
+Arduino Uno Pin 3  ---[220Ω]--- RED   LED
+Arduino Uno Pin 5  ---[220Ω]--- GREEN LED
+Arduino Uno Pin 6  ---[220Ω]--- BLUE  LED
 Arduino Uno GND  -----------  CATHODE (GND)
 ```
 
