@@ -364,3 +364,23 @@ process.on('SIGINT', () => {
     server.close();
     process.exit(0);
 });
+
+// ===== EASTER EGG =====
+app.get('/easter-egg', (req, res) => {
+  res.json({
+    message: 'Ты нашёл секретную команду Robot Catty!',
+    quote: '— Я не просто робот. Я — КОТ. С самооценкой.',
+    sound: 'MEOW-42',
+    animation: 'tail-wag',
+    firmware: 'v42.0-easter',
+    secret: 'catnip_mode_enabled'
+  });
+});
+
+app.get('/easter-egg/servo-dance', (req, res) => {
+  res.json({
+    dance: ['shoulderL-180', 'shoulderR-0', 'jaw-45', 'eyeL-0', 'eyeR-180'],
+    beat: 'boop-boop-beep',
+    duration: 5
+  });
+});
