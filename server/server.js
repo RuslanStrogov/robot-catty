@@ -7,30 +7,57 @@ const swaggerUi = require('swagger-ui-express');
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
+const SystemMonitor = require('./services/system-monitor');
+const configManager = require('./config/config');
+const statePersistence = require('./utils/state-persistence');
 
 // Load swagger spec
 const swaggerSpec = yaml.load(fs.readFileSync(path.join(__dirname, 'swagger.yaml'), 'utf8'));
+
+// System monitor
+const systemMonitor = new SystemMonitor();
+
+// ========== CONFIG ==========
+configManager.loadConfig();
+const config = configManager.getConfig();
+const envOverrides = configManager.getEnvOverrides();
+
+// Apply environment overrides
+if (Object.keys(envOverrides).length > 0) {
+    console.log('[CONFIG] Applying env overrides:', JSON.stringify(envOverrides));
+    // Rewrite config with env overrides (without saving to file)
+    const merged = JSON.parse(JSON.stringify(config));
+    deepMerge(merged, envOverrides);
+    // Update in-memory only — env overrides don't persist to file
+    Object.assign(config, merged);
+}
+
+const WEB_PORT = config.server.port || 3000;
+const UNO_PORT = config.serial.uno.port;
+const UNO_BAUD = config.serial.uno.baud || 9600;
+const MEGA_PORT = config.serial.mega.port;
+const MEGA_BAUD = config.serial.mega.baud || 115200;
+
+function deepMerge(target, source) {
+    for (const key of Object.keys(source)) {
+        if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
+            if (!target[key] || typeof target[key] !== 'object') {
+                target[key] = JSON.parse(JSON.stringify(source[key]));
+            } else {
+                deepMerge(target[key], source[key]);
+            }
+        } else {
+            target[key] = source[key];
+        }
+    }
+}
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-// ========== CONFIG ==========
-const UNO_PORT = process.env.UNO_PORT || '/dev/ttyUSB0';
-const MEGA_PORT = process.env.MEGA_PORT || '/dev/ttyACM0';
-const BAUD_RATE = 9600;
-const WEB_PORT = process.env.WEB_PORT || 3000;
-
 // ========== STATE ==========
-const state = {
-    servos: {
-        eyeL: 90, eyeR: 90, jaw: 90,
-        shoulderL: 90, shoulderR: 90, elbowL: 90, elbowR: 90
-    },
-    rgb: { r: 0, g: 0, b: 0 },
-    animation: null,
-    connections: { uno: false, mega: false }
-};
+const state = statePersistence.loadState();
 
 // ========== SERIAL PORTS ==========
 let unoPort = null;
@@ -39,15 +66,15 @@ let megaPort = null;
 function initSerial() {
     // Arduino Uno (Head)
     try {
-        unoPort = new SerialPort({ path: UNO_PORT, baudRate: BAUD_RATE, autoOpen: false });
+        unoPort = new SerialPort({ path: UNO_PORT, baudRate: UNO_BAUD, autoOpen: false });
         const unoParser = unoPort.pipe(new ReadlineParser({ delimiter: '\n' }));
-        
+
         unoPort.open((err) => {
             if (err) {
                 console.log('[UNO] Open error:', err.message);
                 state.connections.uno = false;
             } else {
-                console.log('[UNO] Connected on', UNO_PORT);
+                console.log('[UNO] Connected on', UNO_PORT, `@${UNO_BAUD}baud`);
                 state.connections.uno = true;
                 broadcastState();
             }
@@ -72,15 +99,15 @@ function initSerial() {
 
     // Arduino Mega (Body)
     try {
-        megaPort = new SerialPort({ path: MEGA_PORT, baudRate: BAUD_RATE, autoOpen: false });
+        megaPort = new SerialPort({ path: MEGA_PORT, baudRate: MEGA_BAUD, autoOpen: false });
         const megaParser = megaPort.pipe(new ReadlineParser({ delimiter: '\n' }));
-        
+
         megaPort.open((err) => {
             if (err) {
                 console.log('[MEGA] Open error:', err.message);
                 state.connections.mega = false;
             } else {
-                console.log('[MEGA] Connected on', MEGA_PORT);
+                console.log('[MEGA] Connected on', MEGA_PORT, `@${MEGA_BAUD}baud`);
                 state.connections.mega = true;
                 broadcastState();
             }
@@ -105,7 +132,6 @@ function initSerial() {
 }
 
 function parseResponse(board, line) {
-    // Parse STATUS responses
     if (line.startsWith('STATUS:')) {
         const parts = line.substring(7).split(';');
         parts.forEach(part => {
@@ -146,9 +172,10 @@ const clients = new Set();
 wss.on('connection', (ws) => {
     clients.add(ws);
     console.log('[WS] Client connected. Total:', clients.size);
-    
-    // Send current state
+
+    // Send current state + config
     ws.send(JSON.stringify({ type: 'state', data: state, connections: state.connections }));
+    ws.send(JSON.stringify({ type: 'config', data: configManager.getConfig() }));
 
     ws.on('message', (msg) => {
         try {
@@ -167,44 +194,70 @@ wss.on('connection', (ws) => {
 
 function handleWSMessage(ws, req) {
     switch (req.type) {
+        case 'board_led':
+            if (req.board && req.state !== undefined) {
+                state.board_leds[req.board] = !!req.state;
+                sendToBoard(req.board, req.state ? 'LEDON' : 'LEDOFF');
+                broadcastState();
+            }
+            break;
+
         case 'servo':
             const board = ['eyeL','eyeR','jaw'].includes(req.servo) ? 'uno' : 'mega';
             sendToBoard(board, `SERVO:${req.servo}:${req.angle}`);
             state.servos[req.servo] = req.angle;
             break;
-        
+
         case 'rgb':
-            sendToBoard('uno', `RGB:${req.r},${req.g},${req.b}`);
+            sendToBoard('uno', `RGB:${req.b},${req.g},${req.r}`);
             state.rgb = { r: req.r, g: req.g, b: req.b };
             broadcastState();
             break;
-        
+
+        case 'blink':
+            sendToBoard('uno', `BLINK:${req.on},${req.off}`);
+            state.blink = { on: req.on, off: req.off };
+            break;
+
+        case 'transition':
+            sendToBoard('uno', `TRANS:${req.from},${req.to},${req.step}`);
+            state.transition = { from: req.from, to: req.to, step: req.step };
+            break;
+
+        case 'config':
+            if (req.action === 'get') {
+                ws.send(JSON.stringify({ type: 'config', data: configManager.getConfig() }));
+            } else if (req.action === 'set' && req.data) {
+                const ok = configManager.updateConfig(req.data);
+                ws.send(JSON.stringify({ type: 'config', data: configManager.getConfig() }));
+                addLog('server', `[CONFIG] Updated from WS: ${ok ? 'OK' : 'FAIL'}`);
+            } else if (req.action === 'reset') {
+                configManager.resetConfig();
+                ws.send(JSON.stringify({ type: 'config', data: configManager.getConfig() }));
+                addLog('server', '[CONFIG] Reset to defaults');
+            }
+            break;
+
         case 'cmd':
             if (req.data === 'HOME' || req.data === 'STATUS') {
                 sendToBoard('uno', req.data);
             } else if (req.data === 'CENTER') {
                 sendToBoard('mega', req.data);
             } else if (req.data === 'SERVER_STATUS') {
-                ws.send(JSON.stringify({ type: 'server_status', data: {
-                    uptime: process.uptime(),
-                    memory: process.memoryUsage(),
-                    connections: state.connections,
-                    serialPorts: { uno: unoPort ? unoPort.isOpen : false, mega: megaPort ? megaPort.isOpen : false },
-                    logEntries: { serial: logBuffer.serial.length, server: logBuffer.server.length }
-                }}));
+                ws.send(JSON.stringify({ type: 'server_status', data: systemMonitor.getStatus() }));
             } else {
                 sendToBoard('uno', req.data);
             }
             break;
-        
+
         case 'preset':
             sendToBoard('uno', `PRESET:${req.name}`);
             break;
-        
+
         case 'animation':
             handleAnimation(req.name, req.params);
             break;
-        
+
         case 'stop':
             state.animation = null;
             sendToBoard('uno', 'STOP');
@@ -215,17 +268,16 @@ function handleWSMessage(ws, req) {
 
 function handleAnimation(name, params) {
     state.animation = name;
-    // Simple animation sequences
     switch (name) {
-        case 'wave': // shake shoulder
+        case 'wave':
             const waveInterval = setInterval(() => {
                 if (state.animation !== 'wave') { clearInterval(waveInterval); return; }
-                state.servo.shoulderR = state.servo.shoulderR === 90 ? 45 : 90;
-                sendToBoard('mega', `SERVO:shoulderR:${state.servo.shoulderR}`);
+                state.servos.shoulderR = state.servos.shoulderR === 90 ? 45 : 90;
+                sendToBoard('mega', `SERVO:shoulderR:${state.servos.shoulderR}`);
                 broadcastState();
             }, 800);
             break;
-        case 'nod': // jaw open/close
+        case 'nod':
             const nodInterval = setInterval(() => {
                 if (state.animation !== 'nod') { clearInterval(nodInterval); return; }
                 state.servos.jaw = state.servos.jaw === 90 ? 45 : 90;
@@ -244,11 +296,19 @@ function broadcastState() {
     clients.forEach(ws => {
         if (ws.readyState === 1) ws.send(msg);
     });
+    statePersistence.saveState(state);
+}
+
+function broadcastConfig() {
+    const msg = JSON.stringify({ type: 'config', data: configManager.getConfig() });
+    clients.forEach(ws => {
+        if (ws.readyState === 1) ws.send(msg);
+    });
 }
 
 // ========== REST API ==========
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Swagger UI
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -257,6 +317,99 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
 
+// ——— Public Env API (no private data) ———
+app.get('/api/env', (req, res) => {
+    const cfg = configManager.getConfig();
+    res.json({
+        serverDomain: cfg.host?.domain || 'localhost',
+        wsProtocol: cfg.host?.wsProtocol || 'ws',
+        localIp: cfg.host?.localIp || '127.0.0.1',
+        wsPort: cfg.server?.port || 3000,
+        serverName: cfg.server?.name || 'Robot Catty'
+    });
+});
+
+// ——— Config API ———
+app.get('/api/config', (req, res) => {
+    res.json(configManager.getConfig());
+});
+
+app.put('/api/config', (req, res) => {
+    const newConfig = req.body;
+    if (!newConfig || typeof newConfig !== 'object') {
+        return res.status(400).json({ error: 'Invalid config object' });
+    }
+    const ok = configManager.updateConfig(newConfig);
+    if (ok) {
+        broadcastConfig();
+        res.json({ ok: true, config: configManager.getConfig() });
+    } else {
+        res.status(500).json({ error: 'Failed to save config' });
+    }
+});
+
+app.post('/api/config/reset', (req, res) => {
+    const def = configManager.resetConfig();
+    if (def) {
+        broadcastConfig();
+        res.json({ ok: true, config: def });
+    } else {
+        res.status(500).json({ error: 'Failed to reset config' });
+    }
+});
+
+app.get('/api/config/port/:board', (req, res) => {
+    const board = req.params.board;
+    if (!['uno', 'mega'].includes(board)) {
+        return res.status(400).json({ error: 'Board must be uno or mega' });
+    }
+    res.json({ board, port: config.serial[board].port, baud: config.serial[board].baud });
+});
+
+app.put('/api/config/port/:board', (req, res) => {
+    const board = req.params.board;
+    if (!['uno', 'mega'].includes(board)) {
+        return res.status(400).json({ error: 'Board must be uno or mega' });
+    }
+    const { port, baud } = req.body;
+    if (port) configManager.setConfig(['serial', board, 'port'], port);
+    if (baud) configManager.setConfig(['serial', board, 'baud'], parseInt(baud));
+    broadcastConfig();
+    res.json({ ok: true, config: configManager.getConfig() });
+});
+
+app.get('/api/config/pin/:module/:name', (req, res) => {
+    const { module, name } = req.params;
+    const cfg = configManager.getConfig();
+    let pins = null;
+    if (module === 'head') pins = cfg.servo_pins?.head;
+    else if (module === 'body') pins = cfg.servo_pins?.body;
+    else if (module === 'rgb') pins = cfg.rgb_pins;
+    if (!pins || !(name in pins)) {
+        return res.status(404).json({ error: 'Pin not found' });
+    }
+    res.json({ module, name, pin: pins[name] });
+});
+
+app.put('/api/config/pin/:module/:name', (req, res) => {
+    const { module, name } = req.params;
+    const { pin } = req.body;
+    if (pin === undefined || typeof pin !== 'number') {
+        return res.status(400).json({ error: 'pin must be a number' });
+    }
+    let path = null;
+    if (module === 'head') path = ['servo_pins', 'head', name];
+    else if (module === 'body') path = ['servo_pins', 'body', name];
+    else if (module === 'rgb') path = ['rgb_pins', name];
+    if (!path) {
+        return res.status(404).json({ error: 'Module not found' });
+    }
+    configManager.setConfig(path, pin);
+    broadcastConfig();
+    res.json({ ok: true, config: configManager.getConfig() });
+});
+
+// ——— Regular API ———
 app.get('/api/status', (req, res) => {
     res.json({ connections: state.connections, data: state });
 });
@@ -302,6 +455,34 @@ app.post('/api/animation/stop', (req, res) => {
     res.json({ ok: true });
 });
 
+// ——— Board LED API ———
+app.get('/api/board-leds', (req, res) => {
+    res.json(state.board_leds);
+});
+
+app.put('/api/board-leds', (req, res) => {
+    const { board, state: ledState } = req.body;
+    if (!['uno', 'mega'].includes(board)) {
+        return res.status(400).json({ error: 'Board must be uno or mega' });
+    }
+    if (ledState === undefined) {
+        return res.status(400).json({ error: 'state (boolean) is required' });
+    }
+    state.board_leds[board] = !!ledState;
+    sendToBoard(board, ledState ? 'LEDON' : 'LEDOFF');
+    broadcastState();
+    res.json({ ok: true, board_leds: state.board_leds });
+});
+
+app.post('/api/board-leds/all-off', (req, res) => {
+    state.board_leds.uno = false;
+    state.board_leds.mega = false;
+    sendToBoard('uno', 'LEDOFF');
+    sendToBoard('mega', 'LEDOFF');
+    broadcastState();
+    res.json({ ok: true, msg: 'Все бортовые диоды выключены' });
+});
+
 // ========== LOG BUFFER ==========
 const logBuffer = { serial: [], server: [] };
 const MAX_LOG_ENTRIES = 200;
@@ -315,14 +496,12 @@ function addLog(category, line) {
     }
 }
 
-// Wrap console.log to capture server logs
 const origLog = console.log;
 console.log = function(...args) {
     origLog.apply(console, args);
     addLog('server', args.join(' '));
 };
 
-// ========== LOG API ==========
 app.get('/api/logs', (req, res) => {
     res.json({
         serial: logBuffer.serial.slice(-50).map(e => `${new Date(e.time).toLocaleTimeString()} ${e.line}`),
@@ -331,18 +510,26 @@ app.get('/api/logs', (req, res) => {
 });
 
 app.get('/api/server/status', (req, res) => {
+    res.json(systemMonitor.getStatus());
+});
+
+// ========== EASTER EGG ==========
+app.get('/easter-egg', (req, res) => {
     res.json({
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-        connections: state.connections,
-        serialPorts: {
-            uno: unoPort ? unoPort.isOpen : false,
-            mega: megaPort ? megaPort.isOpen : false
-        },
-        logEntries: {
-            serial: logBuffer.serial.length,
-            server: logBuffer.server.length
-        }
+        message: 'Ты нашёл секретную команду Robot Catty!',
+        quote: '— Я не просто робот. Я — КОТ. С самооценкой.',
+        sound: 'MEOW-42',
+        animation: 'tail-wag',
+        firmware: 'v42.0-easter',
+        secret: 'catnip_mode_enabled'
+    });
+});
+
+app.get('/easter-egg/servo-dance', (req, res) => {
+    res.json({
+        dance: ['shoulderL-180', 'shoulderR-0', 'jaw-45', 'eyeL-0', 'eyeR-180'],
+        beat: 'boop-boop-beep',
+        duration: 5
     });
 });
 
@@ -350,9 +537,9 @@ app.get('/api/server/status', (req, res) => {
 server.listen(WEB_PORT, '0.0.0.0', () => {
     console.log(`\n🤖 Robot Catty Server running on http://0.0.0.0:${WEB_PORT}`);
     console.log(`   WebSocket: ws://0.0.0.0:${WEB_PORT}/ws`);
-    console.log(`   Uno: ${UNO_PORT} | Mega: ${MEGA_PORT}`);
-    console.log(`   Logs API: http://0.0.0.0:${WEB_PORT}/api/logs`);
-    console.log(`   Server Status: http://0.0.0.0:${WEB_PORT}/api/server/status\n`);
+    console.log(`   Uno: ${UNO_PORT} @${UNO_BAUD}baud | Mega: ${MEGA_PORT} @${MEGA_BAUD}baud`);
+    console.log(`   Config: http://0.0.0.0:${WEB_PORT}/api/config`);
+    console.log(`   Swagger UI: http://0.0.0.0:${WEB_PORT}/api/docs`);
     initSerial();
 });
 
@@ -363,24 +550,4 @@ process.on('SIGINT', () => {
     if (megaPort) megaPort.close();
     server.close();
     process.exit(0);
-});
-
-// ===== EASTER EGG =====
-app.get('/easter-egg', (req, res) => {
-  res.json({
-    message: 'Ты нашёл секретную команду Robot Catty!',
-    quote: '— Я не просто робот. Я — КОТ. С самооценкой.',
-    sound: 'MEOW-42',
-    animation: 'tail-wag',
-    firmware: 'v42.0-easter',
-    secret: 'catnip_mode_enabled'
-  });
-});
-
-app.get('/easter-egg/servo-dance', (req, res) => {
-  res.json({
-    dance: ['shoulderL-180', 'shoulderR-0', 'jaw-45', 'eyeL-0', 'eyeR-180'],
-    beat: 'boop-boop-beep',
-    duration: 5
-  });
 });
